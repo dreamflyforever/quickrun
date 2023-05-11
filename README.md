@@ -39,8 +39,8 @@ bash test_rk3588_yolov5.sh
 #define OBJ_NAME_MAX_SIZE 16  // 最长目标名称
 #define OBJ_NUMB_MAX_SIZE 64  // 最多目标个数
 #define OBJ_CLASS_NUM 1       // 目标类别数--需要根据项目进行修改
-#define NMS_THRESH 0.45       // NMS 阈值
-#define BOX_THRESH 0.25       // 目标置信度
+#define NMS_THRESH 0.25       // NMS 阈值
+#define BOX_THRESH 0.5       // 目标置信度
 ```
 
 5. 编译安装与测试
