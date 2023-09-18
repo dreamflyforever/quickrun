@@ -113,23 +113,12 @@ static int saveFloat(const char *file_name, float *output, int element_size)
 	return 0;
 }
 
-/*-------------------------------------------
-				Main Functions
--------------------------------------------*/
-int main(int argc, char **argv)
+int preprocess(const char * image_name)
 {
-	int status = 0;
-	char *model_name = NULL;
-	rknn_context ctx;
-	size_t actual_size = 0;
+	int retval = -1;
 	int img_width = 0;
 	int img_height = 0;
 	int img_channel = 0;
-	const float nms_threshold = NMS_THRESH;
-	const float box_conf_threshold = BOX_THRESH;
-	struct timeval start_time, stop_time;
-	int ret;
-
 	// init rga context
 	rga_buffer_t src;
 	rga_buffer_t dst;
@@ -139,22 +128,8 @@ int main(int argc, char **argv)
 	memset(&dst_rect, 0, sizeof(dst_rect));
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
-
-	if (argc != 3)
-	{
-		printf("Usage: %s <rknn model> <jpg> \n", argv[0]);
-		return -1;
-	}
-
-	printf("post process config: box_conf_threshold = %.2f, nms_threshold = %.2f\n", box_conf_threshold, nms_threshold);
-
-	model_name = (char *)argv[1];
-	char *image_name = argv[2];
-
-	printf("Read %s ...\n", image_name);
-	cv::Mat orig_img = cv::imread(image_name, 1);
-	if (!orig_img.data)
-	{
+	cv::Mat orig_img = cv::imread(image_name, cv2.IMREAD_COLOR);
+	if (!orig_img.data) {
 		printf("cv::imread %s fail!\n", image_name);
 		return -1;
 	}
@@ -162,87 +137,7 @@ int main(int argc, char **argv)
 	cv::cvtColor(orig_img, img, cv::COLOR_BGR2RGB);
 	img_width = img.cols;
 	img_height = img.rows;
-	printf("img width = %d, img height = %d\n", img_width, img_height);
-
-	/* Create the neural network */
-	printf("Loading mode...\n");
-	int model_data_size = 0;
-	unsigned char *model_data = load_model(model_name, &model_data_size);
-	ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
-	if (ret < 0)
-	{
-		printf("rknn_init error ret=%d\n", ret);
-		return -1;
-	}
-
-	rknn_sdk_version version;
-	ret = rknn_query(ctx, RKNN_QUERY_SDK_VERSION, &version, sizeof(rknn_sdk_version));
-	if (ret < 0)
-	{
-		printf("rknn_init error ret=%d\n", ret);
-		return -1;
-	}
-	printf("sdk version: %s driver version: %s\n", version.api_version, version.drv_version);
-
-	rknn_input_output_num io_num;
-	ret = rknn_query(ctx, RKNN_QUERY_IN_OUT_NUM, &io_num, sizeof(io_num));
-	if (ret < 0)
-	{
-		printf("rknn_init error ret=%d\n", ret);
-		return -1;
-	}
-	printf("model input num: %d, output num: %d\n", io_num.n_input, io_num.n_output);
-
-	rknn_tensor_attr input_attrs[io_num.n_input];
-	memset(input_attrs, 0, sizeof(input_attrs));
-	for (int i = 0; i < io_num.n_input; i++)
-	{
-		input_attrs[i].index = i;
-		ret = rknn_query(ctx, RKNN_QUERY_INPUT_ATTR, &(input_attrs[i]), sizeof(rknn_tensor_attr));
-		if (ret < 0)
-		{
-			printf("rknn_init error ret=%d\n", ret);
-			return -1;
-		}
-		dump_tensor_attr(&(input_attrs[i]));
-	}
-
-	rknn_tensor_attr output_attrs[io_num.n_output];
-	memset(output_attrs, 0, sizeof(output_attrs));
-	for (int i = 0; i < io_num.n_output; i++)
-	{
-		output_attrs[i].index = i;
-		ret = rknn_query(ctx, RKNN_QUERY_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
-		dump_tensor_attr(&(output_attrs[i]));
-	}
-
-	int channel = 3;
-	int width = 0;
-	int height = 0;
-	if (input_attrs[0].fmt == RKNN_TENSOR_NCHW)
-	{
-		printf("model is NCHW input fmt\n");
-		channel = input_attrs[0].dims[1];
-		height = input_attrs[0].dims[2];
-		width = input_attrs[0].dims[3];
-	}
-	else
-	{
-		printf("model is NHWC input fmt\n");
-		height = input_attrs[0].dims[1];
-		width = input_attrs[0].dims[2];
-		channel = input_attrs[0].dims[3];
-	}
-
-	printf("model input height=%d, width=%d, channel=%d\n", height, width, channel);
-
-	rknn_input inputs[1];
-	memset(inputs, 0, sizeof(inputs));
-	inputs[0].index = 0;
-	inputs[0].type = RKNN_TENSOR_UINT8;
-	inputs[0].size = width * height * channel;
-	inputs[0].fmt = RKNN_TENSOR_NHWC;
-	inputs[0].pass_through = 0;
+	os_printf("img width = %d, img height = %d\n", img_width, img_height);
 
 	// You may not need resize when src resulotion equals to dst resulotion
 	void *resize_buf = nullptr;
@@ -274,7 +169,101 @@ int main(int argc, char **argv)
 		inputs[0].buf = (void *)img.data;
 	}
 
-	gettimeofday(&start_time, NULL);
+}
+
+typedef struct session_str {
+	rknn_context * ctx;
+	const char * model_path;
+	int model_width;
+	int model_hight;
+	int model_channel = 3;
+	rknn_input_output_num io_num;
+	rknn_tensor_attr input_attrs[io_num.n_input];
+	void *resize_buf = nullptr;
+} session_str;
+
+int session_init(session_str ** entity, const char * model_path)
+{
+	*entity = malloc(sizeof(session_str));
+	return *entity;
+}
+
+int inference(const char * model_name, rknn_context * ctx)
+{
+	int retval = -1;
+	int model_data_size = 0;
+	unsigned char *model_data = load_model(model_name, &model_data_size);
+	ret = rknn_init(&ctx, model_data, model_data_size, 0, NULL);
+	if (ret < 0)
+	{
+		printf("rknn_init error ret=%d\n", ret);
+		return -1;
+	}
+
+	rknn_sdk_version version;
+	ret = rknn_query(ctx, RKNN_QUERY_SDK_VERSION, &version, sizeof(rknn_sdk_version));
+	if (ret < 0) {
+		printf("rknn_init error ret=%d\n", ret);
+		return -1;
+	}
+	os_printf("sdk version: %s driver version: %s\n", version.api_version, version.drv_version);
+
+	rknn_input_output_num io_num;
+	ret = rknn_query(ctx, RKNN_QUERY_IN_OUT_NUM, &io_num, sizeof(io_num));
+	if (ret < 0) {
+		os_printf("rknn_init error ret=%d\n", ret);
+		return -1;
+	}
+	os_printf("model input num: %d, output num: %d\n", io_num.n_input, io_num.n_output);
+
+	rknn_tensor_attr input_attrs[io_num.n_input];
+	memset(input_attrs, 0, sizeof(input_attrs));
+	for (int i = 0; i < io_num.n_input; i++) {
+		input_attrs[i].index = i;
+		ret = rknn_query(ctx, RKNN_QUERY_INPUT_ATTR,
+				&(input_attrs[i]), sizeof(rknn_tensor_attr));
+		if (ret < 0) {
+			printf("rknn_init error ret=%d\n", ret);
+			return -1;
+		}
+		dump_tensor_attr(&(input_attrs[i]));
+	}
+
+	rknn_tensor_attr output_attrs[io_num.n_output];
+	memset(output_attrs, 0, sizeof(output_attrs));
+	for (int i = 0; i < io_num.n_output; i++) {
+		output_attrs[i].index = i;
+		ret = rknn_query(ctx, RKNN_QUERY_OUTPUT_ATTR, &(output_attrs[i]), sizeof(rknn_tensor_attr));
+		dump_tensor_attr(&(output_attrs[i]));
+	}
+	int channel = 3;
+	int width = 0;
+	int height = 0;
+	if (input_attrs[0].fmt == RKNN_TENSOR_NCHW)
+	{
+		printf("model is NCHW input fmt\n");
+		channel = input_attrs[0].dims[1];
+		height = input_attrs[0].dims[2];
+		width = input_attrs[0].dims[3];
+	}
+	else
+	{
+		printf("model is NHWC input fmt\n");
+		height = input_attrs[0].dims[1];
+		width = input_attrs[0].dims[2];
+		channel = input_attrs[0].dims[3];
+	}
+
+	printf("model input height=%d, width=%d, channel=%d\n", height, width, channel);
+
+	rknn_input inputs[1];
+	memset(inputs, 0, sizeof(inputs));
+	inputs[0].index = 0;
+	inputs[0].type = RKNN_TENSOR_UINT8;
+	inputs[0].size = width * height * channel;
+	inputs[0].fmt = RKNN_TENSOR_NHWC;
+	inputs[0].pass_through = 0;
+
 	rknn_inputs_set(ctx, io_num.n_input, inputs);
 
 	rknn_output outputs[io_num.n_output];
@@ -286,9 +275,44 @@ int main(int argc, char **argv)
 
 	ret = rknn_run(ctx, NULL);
 	ret = rknn_outputs_get(ctx, io_num.n_output, outputs, NULL);
+
+}
+/*-------------------------------------------
+				Main Functions
+-------------------------------------------*/
+int main(int argc, char **argv)
+{
+	int status = 0;
+	char *model_name = NULL;
+	rknn_context ctx;
+	size_t actual_size = 0;
+	int img_width = 0;
+	int img_height = 0;
+	int img_channel = 0;
+	const float nms_threshold = NMS_THRESH;
+	const float box_conf_threshold = BOX_THRESH;
+	struct timeval start_time, stop_time;
+	int ret;
+	if (argc != 3) {
+		printf("Usage: %s <rknn model> <jpg> \n", argv[0]);
+		return -1;
+	}
+
+	os_printf("post process config: box_conf_threshold = %.2f,
+			nms_threshold = %.2f\n", box_conf_threshold, nms_threshold);
+
+	model_name = (char *)argv[1];
+	char *image_name = argv[2];
+
+	os_printf("Read %s ...\n", image_name);
+	preprocess(image_name);
+	/* Create the neural network */
+	os_printf("Loading mode...\n");
+	gettimeofday(&start_time, NULL);
+	inference();
 	gettimeofday(&stop_time, NULL);
 	printf("once run use %f ms\n", (__get_us(stop_time) - __get_us(start_time)) / 1000);
-
+	
 	// post process
 	float scale_w = (float)width / img_width;
 	float scale_h = (float)height / img_height;
