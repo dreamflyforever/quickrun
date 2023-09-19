@@ -32,13 +32,12 @@
 #include "rga.h"
 #include "rknn_api.h"
 
-#define unsigned char uint8
+#define uint8 unsigned char 
 
 typedef struct session_str {
 	rknn_context ctx;
-	const char * model_path;
 	int model_width;
-	int model_hight;
+	int model_height;
 	int model_channel = 3;
 	rknn_input_output_num io_num;
 	//rknn_tensor_attr input_attrs[io_num.n_input];
@@ -50,6 +49,8 @@ typedef struct session_str {
 	int img_width;
 	int img_height;
 	int img_channel;
+	uint8 * model_data;
+	cv::Mat orig_img;
 } session_str;
 
 
@@ -59,8 +60,8 @@ typedef struct session_str {
 
 static void dump_tensor_attr(rknn_tensor_attr *attr)
 {
-	os_printf("  index=%d, name=%s, n_dims=%d, dims=[%d, %d, %d, %d],
-		n_elems=%d, size=%d, fmt=%s, type=%s, qnt_type=%s, "
+	os_printf("  index=%d, name=%s, n_dims=%d, dims=[%d, %d, %d, %d],"
+		"n_elems=%d, size=%d, fmt=%s, type=%s, qnt_type=%s, "
 		"zp=%d, scale=%f\n",
 		attr->index, attr->name, attr->n_dims, 
 		attr->dims[0], attr->dims[1], attr->dims[2], attr->dims[3],
@@ -102,7 +103,7 @@ static uint8 *load_model(const char *filename, int *model_size)
 {
 	FILE * fp;
 	uint8 * data = NULL;
-
+	int size;
 	fp = fopen(filename, "rb");
 	if (NULL == fp) {
 		printf("Open file %s failed.\n", filename);
@@ -110,7 +111,7 @@ static uint8 *load_model(const char *filename, int *model_size)
 	}
 
 	fseek(fp, 0, SEEK_END);
-	int size = ftell(fp);
+	size = ftell(fp);
 
 	data = load_data(fp, 0, size);
 
@@ -124,12 +125,13 @@ end:
 static int saveFloat(const char *file_name, float *output, int element_size)
 {
 	FILE *fp;
+	int i;
 	fp = fopen(file_name, "w");
 	if (fp == NULL) {
 		os_printf("file no found\n");
 		goto end;
 	}
-	for (int i = 0; i < element_size; i++) {
+	for (i = 0; i < element_size; i++) {
 		fprintf(fp, "%.6f\n", output[i]);
 	}
 	fclose(fp);
@@ -139,13 +141,13 @@ end:
 
 int preprocess(session_str * entity, const char * image_name)
 {
-	int retval = -1;
+	int ret = -1;
 	int img_width = 0;
 	int img_height = 0;
 	int img_channel = 0;
 
 	int width = entity->model_width;
-	int height = entity->model_heigh;
+	int height = entity->model_height;
 	int channel = entity->model_channel;
 	/*init rga context*/
 	rga_buffer_t src;
@@ -156,27 +158,28 @@ int preprocess(session_str * entity, const char * image_name)
 	memset(&dst_rect, 0, sizeof(dst_rect));
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
-	cv::Mat orig_img = cv::imread(image_name, cv2.IMREAD_COLOR);
-	if (!orig_img.data) {
+	entity->orig_img = cv::imread(image_name, 1);
+	if (!entity->orig_img.data) {
 		printf("cv::imread %s fail!\n", image_name);
-		goto end;
+		return -1;
 	}
 	cv::Mat img;
-	cv::cvtColor(orig_img, img, cv::COLOR_BGR2RGB);
+	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
 	img_width = img.cols;
 	img_height = img.rows;
 	os_printf("img width = %d, img height = %d\n", img_width, img_height);
-
+	entity->img_height = img_height;
+	entity->img_width = img_width;
 	// You may not need resize when src resulotion equals to dst resulotion
-	void *resize_buf = nullptr;
+	entity->resize_buf = nullptr;
 
 	if (img_width != width || img_height != height) {
 		printf("resize with RGA!\n");
-		resize_buf = malloc(height * width * channel);
-		memset(resize_buf, 0x00, height * width * channel);
+		entity->resize_buf = malloc(height * width * channel);
+		memset(entity->resize_buf, 0x00, height * width * channel);
 
 		src = wrapbuffer_virtualaddr((void *)img.data, img_width, img_height, RK_FORMAT_RGB_888);
-		dst = wrapbuffer_virtualaddr((void *)resize_buf, width, height, RK_FORMAT_RGB_888);
+		dst = wrapbuffer_virtualaddr((void *)entity->resize_buf, width, height, RK_FORMAT_RGB_888);
 		ret = imcheck(src, dst, src_rect, dst_rect);
 		if (IM_STATUS_NOERROR != ret)
 		{
@@ -186,32 +189,31 @@ int preprocess(session_str * entity, const char * image_name)
 		IM_STATUS STATUS = imresize(src, dst);
 
 		// for debug
-		cv::Mat resize_img(cv::Size(width, height), CV_8UC3, resize_buf);
+		cv::Mat resize_img(cv::Size(width, height), CV_8UC3, entity->resize_buf);
 		cv::imwrite("resize_input.jpg", resize_img);
 
-		entity->inputs[0].buf = resize_buf;
-	}
-	else
-	{
+		entity->inputs[0].buf = entity->resize_buf;
+	} else {
 		entity->inputs[0].buf = (void *)img.data;
 	}
-end:
-	return retval;
+/*end:*/
+	return ret;
 }
 
 int postprocess(session_str * entity)
 {
+	int retval = 0;
 	int width = entity->model_width;
-	int height = entity->model_heigh;
+	int height = entity->model_height;
 	int channel = entity->model_channel;
-	float scale_w = (float)width / img_width;
-	float scale_h = (float)height / img_height;
+	float scale_w = (float)width / entity->img_width;
+	float scale_h = (float)height / entity->img_height;
 
 	const float nms_threshold = NMS_THRESH;
 	const float box_conf_threshold = BOX_THRESH;
 
-	os_printf("post process config: box_conf_threshold = %.2f,
-			nms_threshold = %.2f\n", box_conf_threshold, nms_threshold);
+	printf("post process config: box_conf_threshold = %.2f,"
+		"nms_threshold = %.2f\n", box_conf_threshold, nms_threshold);
 
 	detect_result_group_t detect_result_group;
 	std::vector<float> out_scales;
@@ -237,27 +239,32 @@ int postprocess(session_str * entity)
 		int y1 = det_result->box.top;
 		int x2 = det_result->box.right;
 		int y2 = det_result->box.bottom;
-		rectangle(orig_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0, 255), 3);
-		putText(orig_img, text, cv::Point(x1, y1 + 12), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+		rectangle(entity->orig_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0, 255), 3);
+		putText(entity->orig_img, text, cv::Point(x1, y1 + 12), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
 	}
 
-	imwrite("./out.jpg", orig_img);
+	imwrite("./out.jpg", entity->orig_img);
+	return retval;
 }
 
 int session_init(session_str ** entity, const char * model_name)
 {
-	int retval = -1;
-	*entity = malloc(sizeof(session_str));
+	int ret = -1;
+	int channel = 3;
+	int width = 0;
+	int height = 0;
+	int i;
+	*entity = (session_str *)malloc(sizeof(session_str));
 	int model_data_size = 0;
-	uint8 *model_data = load_model(model_name, &model_data_size);
-	ret = rknn_init(&((*entity)->ctx), model_data, model_data_size, 0, NULL);
+	(*entity)->model_data = load_model(model_name, &model_data_size);
+	ret = rknn_init(&((*entity)->ctx), (*entity)->model_data, model_data_size, 0, NULL);
 	if (ret < 0) {
 		os_printf("rknn_init error ret=%d\n", ret);
 		goto end;	
 	}
 
 	rknn_sdk_version version;
-	ret = rknn_query(&((*entity)->ctx), RKNN_QUERY_SDK_VERSION,
+	ret = rknn_query((*entity)->ctx, RKNN_QUERY_SDK_VERSION,
 			&version, sizeof(rknn_sdk_version));
 	if (ret < 0) {
 		printf("rknn_init error ret=%d\n", ret);
@@ -267,7 +274,7 @@ int session_init(session_str ** entity, const char * model_name)
 	os_printf("sdk version: %s driver version: %s\n",
 		version.api_version, version.drv_version);
 
-	ret = rknn_query(&((*entity)->ctx), RKNN_QUERY_IN_OUT_NUM,
+	ret = rknn_query((*entity)->ctx, RKNN_QUERY_IN_OUT_NUM,
 			&((*entity)->io_num), sizeof((*entity)->io_num));
 	if (ret < 0) {
 		os_printf("rknn_init error ret=%d\n", ret);
@@ -279,7 +286,7 @@ int session_init(session_str ** entity, const char * model_name)
 
 	(*entity)->input_attrs = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_input);
 	memset((*entity)->input_attrs, 0, sizeof((*entity)->input_attrs));
-	for (int i = 0; i < ((*entity)->io_num).n_input; i++) {
+	for (i = 0; i < ((*entity)->io_num).n_input; i++) {
 		((*entity)->input_attrs[i]).index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_INPUT_ATTR,
 				&((*entity)->input_attrs[i]), sizeof(rknn_tensor_attr));
@@ -290,17 +297,14 @@ int session_init(session_str ** entity, const char * model_name)
 		dump_tensor_attr(&((*entity)->input_attrs[i]));
 	}
 
-	(*entity)->output_attrs  = (rknn_tensor_attr*)malloc(io_num.n_output);
-	memset(output_attrs, 0, sizeof(output_attrs));
-	for (int i = 0; i < (*entity)->io_num.n_output; i++) {
+	(*entity)->output_attrs  = (rknn_tensor_attr*)malloc((*entity)->io_num.n_output);
+	memset((*entity)->output_attrs, 0, sizeof((*entity)->output_attrs));
+	for (i = 0; i < (*entity)->io_num.n_output; i++) {
 		(*entity)->output_attrs[i].index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_OUTPUT_ATTR,
 				&((*entity)->output_attrs[i]), sizeof(rknn_tensor_attr));
 		dump_tensor_attr(&((*entity)->output_attrs[i]));
 	}
-	int channel = 3;
-	int width = 0;
-	int height = 0;
 	if ((*entity)->input_attrs[0].fmt == RKNN_TENSOR_NCHW) {
 		os_printf("model is NCHW input fmt\n");
 		channel = (*entity)->input_attrs[0].dims[1];
@@ -314,51 +318,51 @@ int session_init(session_str ** entity, const char * model_name)
 	}
 
 	printf("model input height=%d, width=%d, channel=%d\n", height, width, channel);
-	*entity->model_height = height;
-	*entity->model_width = width;
-	*entity->model_channel = channel;
-	memset(*entity->inputs, 0, sizeof(*entity->inputs));
-	*entity->inputs[0].index = 0;
-	*entity->inputs[0].type = RKNN_TENSOR_UINT8;
-	*entity->inputs[0].size = width * height * channel;
-	*entity->inputs[0].fmt = RKNN_TENSOR_NHWC;
-	*entity->inputs[0].pass_through = 0;
+	(*entity)->model_height = height;
+	(*entity)->model_width = width;
+	(*entity)->model_channel = channel;
+	memset((*entity)->inputs, 0, sizeof((*entity)->inputs));
+	(*entity)->inputs[0].index = 0;
+	(*entity)->inputs[0].type = RKNN_TENSOR_UINT8;
+	(*entity)->inputs[0].size = width * height * channel;
+	(*entity)->inputs[0].fmt = RKNN_TENSOR_NHWC;
+	(*entity)->inputs[0].pass_through = 0;
 
-	rknn_inputs_set(*entity->ctx, *entity->io_num.n_input, *entity->inputs);
+	rknn_inputs_set((*entity)->ctx, (*entity)->io_num.n_input, (*entity)->inputs);
 
-	*entity->outputs = (rknn_output * )malloc(io_num.n_output);
-	memset(*entity->outputs, 0, sizeof(*entity->outputs));
-	for (int i = 0; i < *entity->io_num.n_output; i++) {
-		*entity->outputs[i].want_float = 0;
+	(*entity)->outputs = (rknn_output * )malloc((*entity)->io_num.n_output);
+	memset((*entity)->outputs, 0, sizeof((*entity)->outputs));
+	for (int i = 0; i < (*entity)->io_num.n_output; i++) {
+		(*entity)->outputs[i].want_float = 0;
 	}
 end:
-	return *entity;
+	return ret;
 }
 
 int session_deinit(session_str * entity)
 {
 	int retval = -1;
 	retval = rknn_outputs_release(entity->ctx,
-			entity->io_num.n_output, outputs);
+			entity->io_num.n_output, entity->outputs);
 	// release
-	ret = rknn_destroy(ctx);
+	retval = rknn_destroy(entity->ctx);
 
-	if (model_data) {
-		free(model_data);
+	if (entity->model_data) {
+		free(entity->model_data);
 	}
 
-	if (resize_buf) {
-		free(resize_buf);
+	if (entity->resize_buf) {
+		free(entity->resize_buf);
 	}
-	free(entity->input_attrs)
-	free(entity->output_attrs)
-	free(entity->outputs)
-	free(&entity)
+	free(entity->input_attrs);
+	free(entity->output_attrs);
+	free(entity->outputs);
+	free(&entity);
 
 	return retval;
 }
 
-int inference(session_str * entity, )
+int inference(session_str * entity)
 {
 	int retval = -1;
 	retval = rknn_run(entity->ctx, NULL);
