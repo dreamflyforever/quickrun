@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.4.1)
 
 # project name
-project(rk3588_yolov5)
+project(quickrun)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -34,15 +34,15 @@ include_directories( ${RGA_PATH}/include)
 
 set(CMAKE_INSTALL_RPATH "lib")
 
-# rk3588_yolov5
-include_directories( ${CMAKE_SOURCE_DIR}/yolov5/include)
+# quickrun
+include_directories( ${CMAKE_SOURCE_DIR}/kernel/include)
 
-add_executable(rk3588_yolov5
-        yolov5/src/main.cpp
-        yolov5/src/postprocess.cpp
+add_executable(quickrun
+        kernel/src/main.cpp
+        kernel/src/postprocess.cpp
 )
 
-target_link_libraries(rk3588_yolov5
+target_link_libraries(quickrun
   ${RKNN_RT_LIB}
   ${RGA_LIB}
   ${OpenCV_LIBS}
@@ -50,7 +50,7 @@ target_link_libraries(rk3588_yolov5
 
 
 # install target and libraries
-install(TARGETS rk3588_yolov5 DESTINATION ./)
+install(TARGETS quickrun DESTINATION ./)
 
 install(PROGRAMS ${RKNN_RT_LIB} DESTINATION lib)
 install(PROGRAMS ${RGA_LIB} DESTINATION lib)
