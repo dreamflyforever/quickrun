@@ -29,13 +29,13 @@ uint8 * load_data(FILE *fp, size_t ofst, size_t sz)
 
 	ret = fseek(fp, ofst, SEEK_SET);
 	if (ret != 0) {
-		printf("blob seek failure.\n");
+		os_printf("blob seek failure.\n");
 		goto end;
 	}
 
 	data = (uint8 *)malloc(sz);
 	if (data == NULL) {
-		printf("buffer malloc failure.\n");
+		os_printf("buffer malloc failure.\n");
 		goto end;
 	}
 	ret = fread(data, 1, sz, fp);
@@ -50,7 +50,7 @@ uint8 *load_model(const char *filename, int *model_size)
 	int size;
 	fp = fopen(filename, "rb");
 	if (NULL == fp) {
-		printf("Open file %s failed.\n", filename);
+		os_printf("Open file %s failed.\n", filename);
 		goto end;
 	}
 
@@ -106,7 +106,7 @@ int preprocess(session_str * entity, const char * image_name)
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
 	if (!entity->orig_img.data) {
-		printf("cv::imread %s fail!\n", image_name);
+		os_printf("cv::imread %s fail!\n", image_name);
 		goto end;
 	}
 	img_width = img.cols;
@@ -118,17 +118,16 @@ int preprocess(session_str * entity, const char * image_name)
 	entity->resize_buf = nullptr;
 
 	if (img_width != width || img_height != height) {
-		printf("resize with RGA!\n");
+		os_printf("resize with RGA!\n");
 		entity->resize_buf = malloc(height * width * channel);
 		memset(entity->resize_buf, 0x00, height * width * channel);
 
 		src = wrapbuffer_virtualaddr((void *)img.data, img_width, img_height, RK_FORMAT_RGB_888);
 		dst = wrapbuffer_virtualaddr((void *)entity->resize_buf, width, height, RK_FORMAT_RGB_888);
 		ret = imcheck(src, dst, src_rect, dst_rect);
-		if (IM_STATUS_NOERROR != ret)
-		{
-			printf("%d, check error! %s", __LINE__, imStrError((IM_STATUS)ret));
-			return -1;
+		if (IM_STATUS_NOERROR != ret) {
+			os_printf("%d, check error! %s", __LINE__, imStrError((IM_STATUS)ret));
+			goto end;
 		}
 		IM_STATUS STATUS = imresize(src, dst);
 
@@ -163,7 +162,7 @@ int postprocess(session_str * entity)
 	const float nms_threshold = NMS_THRESH;
 	const float box_conf_threshold = BOX_THRESH;
 
-	printf("post process config: box_conf_threshold = %.2f,"
+	os_printf("post process config: box_conf_threshold = %.2f,"
 		"nms_threshold = %.2f\n", box_conf_threshold, nms_threshold);
 
 	detect_result_group_t detect_result_group;
@@ -184,7 +183,7 @@ int postprocess(session_str * entity)
 	for (int i = 0; i < detect_result_group.count; i++) {
 		detect_result_t *det_result = &(detect_result_group.results[i]);
 		sprintf(text, "%s %.1f%%", det_result->name, det_result->prop * 100);
-		printf("%s @ (%d %d %d %d) %f\n", det_result->name, det_result->box.left, det_result->box.top,
+		os_printf("%s @ (%d %d %d %d) %f\n", det_result->name, det_result->box.left, det_result->box.top,
 			   det_result->box.right, det_result->box.bottom, det_result->prop);
 		int x1 = det_result->box.left;
 		int y1 = det_result->box.top;
@@ -218,7 +217,7 @@ int session_init(session_str ** entity, const char * model_name)
 	ret = rknn_query((*entity)->ctx, RKNN_QUERY_SDK_VERSION,
 			&version, sizeof(rknn_sdk_version));
 	if (ret < 0) {
-		printf("rknn_init error ret=%d\n", ret);
+		os_printf("rknn_init error ret=%d\n", ret);
 		goto end;	
 	}
 
@@ -261,13 +260,13 @@ int session_init(session_str ** entity, const char * model_name)
 		height  = (*entity)->input_attrs[0].dims[2];
 		width   = (*entity)->input_attrs[0].dims[3];
 	} else {
-		printf("model is NHWC input fmt\n");
+		os_printf("model is NHWC input fmt\n");
 		height =  (*entity)->input_attrs[0].dims[1];
 		width  =  (*entity)->input_attrs[0].dims[2];
 		channel = (*entity)->input_attrs[0].dims[3];
 	}
 
-	printf("model input height=%d, width=%d, channel=%d\n", height, width, channel);
+	os_printf("model input height=%d, width=%d, channel=%d\n", height, width, channel);
 	(*entity)->model_height = height;
 	(*entity)->model_width = width;
 	(*entity)->model_channel = channel;
