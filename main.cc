@@ -1,13 +1,18 @@
+/*
+	This file is example for quickrun API use.
+*/
+
 #include "core.h"
 
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
 int main(int argc, char **argv)
 {
-	os_printf("compile time %s\n", __TIME__);
 	char *model_name = NULL;
 	struct timeval start_time, stop_time;
 	int ret;
+	
+	os_printf("compile time %s\n", __TIME__);
 	session_str * entity;
 	if (argc != 3) {
 		printf("Usage: %s <rknn model> <jpg> \n", argv[0]);
