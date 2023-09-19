@@ -196,6 +196,13 @@ int preprocess(session_str * entity, const char * image_name)
 	} else {
 		entity->inputs[0].buf = (void *)img.data;
 	}
+	rknn_inputs_set(entity->ctx, (entity->io_num).n_input, entity->inputs);
+
+	entity->outputs = (rknn_output * )malloc(entity->io_num.n_output * sizeof(rknn_output));
+	memset(entity->outputs, 0, sizeof(entity->outputs));
+	for (int i = 0; i < entity->io_num.n_output; i++) {
+		entity->outputs[i].want_float = 0;
+	}
 /*end:*/
 	return ret;
 }
@@ -284,7 +291,7 @@ int session_init(session_str ** entity, const char * model_name)
 	os_printf("model input num: %d, output num: %d\n",
 		((*entity)->io_num).n_input, ((*entity)->io_num).n_output);
 
-	(*entity)->input_attrs = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_input);
+	(*entity)->input_attrs = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
 	memset((*entity)->input_attrs, 0, sizeof((*entity)->input_attrs));
 	for (i = 0; i < ((*entity)->io_num).n_input; i++) {
 		((*entity)->input_attrs[i]).index = i;
@@ -296,13 +303,12 @@ int session_init(session_str ** entity, const char * model_name)
 		}
 		dump_tensor_attr(&((*entity)->input_attrs[i]));
 	}
-
-	(*entity)->output_attrs  = (rknn_tensor_attr*)malloc((*entity)->io_num.n_output);
+	(*entity)->output_attrs  = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_output * sizeof(rknn_tensor_attr));
 	memset((*entity)->output_attrs, 0, sizeof((*entity)->output_attrs));
-	for (i = 0; i < (*entity)->io_num.n_output; i++) {
-		(*entity)->output_attrs[i].index = i;
+	for (i = 0; i < ((*entity)->io_num).n_output; i++) {
+		((*entity)->output_attrs[i]).index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_OUTPUT_ATTR,
-				&((*entity)->output_attrs[i]), sizeof(rknn_tensor_attr));
+				&(((*entity)->output_attrs)[i]), sizeof(rknn_tensor_attr));
 		dump_tensor_attr(&((*entity)->output_attrs[i]));
 	}
 	if ((*entity)->input_attrs[0].fmt == RKNN_TENSOR_NCHW) {
@@ -321,6 +327,7 @@ int session_init(session_str ** entity, const char * model_name)
 	(*entity)->model_height = height;
 	(*entity)->model_width = width;
 	(*entity)->model_channel = channel;
+	os_printf("===========\n");
 	memset((*entity)->inputs, 0, sizeof((*entity)->inputs));
 	(*entity)->inputs[0].index = 0;
 	(*entity)->inputs[0].type = RKNN_TENSOR_UINT8;
@@ -328,13 +335,7 @@ int session_init(session_str ** entity, const char * model_name)
 	(*entity)->inputs[0].fmt = RKNN_TENSOR_NHWC;
 	(*entity)->inputs[0].pass_through = 0;
 
-	rknn_inputs_set((*entity)->ctx, (*entity)->io_num.n_input, (*entity)->inputs);
 
-	(*entity)->outputs = (rknn_output * )malloc((*entity)->io_num.n_output);
-	memset((*entity)->outputs, 0, sizeof((*entity)->outputs));
-	for (int i = 0; i < (*entity)->io_num.n_output; i++) {
-		(*entity)->outputs[i].want_float = 0;
-	}
 end:
 	return ret;
 }
@@ -357,7 +358,7 @@ int session_deinit(session_str * entity)
 	free(entity->input_attrs);
 	free(entity->output_attrs);
 	free(entity->outputs);
-	free(&entity);
+	free(entity);
 
 	return retval;
 }
@@ -365,9 +366,12 @@ int session_deinit(session_str * entity)
 int inference(session_str * entity)
 {
 	int retval = -1;
+	os_printf("==============\n");
 	retval = rknn_run(entity->ctx, NULL);
+	os_printf("==============\n");
 	retval = rknn_outputs_get(entity->ctx, entity->io_num.n_output,
 				entity->outputs, NULL);
+	os_printf("==============\n");
 	return retval;
 }
 /*-------------------------------------------
@@ -375,6 +379,7 @@ int inference(session_str * entity)
 -------------------------------------------*/
 int main(int argc, char **argv)
 {
+	os_printf("compile time %s\n", __TIME__);
 	char *model_name = NULL;
 	struct timeval start_time, stop_time;
 	int ret;
