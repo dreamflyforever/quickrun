@@ -114,7 +114,7 @@ int preprocess(session_str * entity, const char * image_name)
 	os_printf("img width = %d, img height = %d\n", img_width, img_height);
 	entity->img_height = img_height;
 	entity->img_width = img_width;
-	// You may not need resize when src resulotion equals to dst resulotion
+	/* You may not need resize when src resulotion equals to dst resulotion */
 	entity->resize_buf = nullptr;
 
 	if (img_width != width || img_height != height) {
