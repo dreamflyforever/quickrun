@@ -38,8 +38,9 @@ set(CMAKE_INSTALL_RPATH "lib")
 include_directories( ${CMAKE_SOURCE_DIR}/kernel/include)
 
 add_executable(quickrun
-        kernel/src/main.cpp
+        kernel/src/core.cpp
         kernel/src/postprocess.cpp
+	main.cc
 )
 
 target_link_libraries(quickrun
