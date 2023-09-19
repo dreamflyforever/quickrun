@@ -11,16 +11,6 @@
 #define BOX_THRESH 0.25
 #define PROP_BOX_SIZE (5 + OBJ_CLASS_NUM)
 
-#define DEBUG 1
-#if DEBUG
-#define os_printf(format, ...) \
-	{printf("[%s : %s : %d] ", \
-	__FILE__, __func__, __LINE__); \
-	printf(format, ##__VA_ARGS__);}
-#else
-#define os_printf(format, ...) 
-#endif
-
 typedef struct _BOX_RECT
 {
     int left;

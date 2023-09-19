@@ -1,59 +1,10 @@
-// Copyright (c) 2021 by Rockchip Electronics Co., Ltd. All Rights Reserved.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
+/*
+	License by Haoqixin.INC
+	author: AI team
+*/
+#include "core.h"
 
-/*-------------------------------------------
-				Includes
--------------------------------------------*/
-#include <dlfcn.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/time.h>
-
-#define _BASETSD_H
-
-#include "RgaUtils.h"
-#include "im2d.h"
-#include "opencv2/core/core.hpp"
-#include "opencv2/imgcodecs.hpp"
-#include "opencv2/imgproc.hpp"
-#include "postprocess.h"
-#include "rga.h"
-#include "rknn_api.h"
-
-#define uint8 unsigned char 
-
-typedef struct session_str {
-	rknn_context ctx;
-	int model_width;
-	int model_height;
-	int model_channel = 3;
-	rknn_input_output_num io_num;
-	//rknn_tensor_attr input_attrs[io_num.n_input];
-	rknn_tensor_attr * input_attrs;//[io_num.n_input];
-	rknn_tensor_attr * output_attrs;
-	void * resize_buf = nullptr;
-	rknn_input inputs[1];
-	rknn_output *outputs;//[io_num.n_output];
-	int img_width;
-	int img_height;
-	int img_channel;
-	uint8 * model_data;
-	cv::Mat orig_img;
-} session_str;
-
-static void dump_tensor_attr(rknn_tensor_attr *attr)
+void dump_tensor_attr(rknn_tensor_attr *attr)
 {
 	os_printf("  index=%d, name=%s, n_dims=%d, dims=[%d, %d, %d, %d],"
 		"n_elems=%d, size=%d, fmt=%s, type=%s, qnt_type=%s, "
@@ -65,9 +16,7 @@ static void dump_tensor_attr(rknn_tensor_attr *attr)
 		attr->zp, attr->scale);
 }
 
-double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
-
-static uint8 * load_data(FILE *fp, size_t ofst, size_t sz)
+uint8 * load_data(FILE *fp, size_t ofst, size_t sz)
 {
 	uint8 * data;
 	int ret;
@@ -94,7 +43,7 @@ end:
 	return data;
 }
 
-static uint8 *load_model(const char *filename, int *model_size)
+uint8 *load_model(const char *filename, int *model_size)
 {
 	FILE * fp;
 	uint8 * data = NULL;
@@ -117,7 +66,7 @@ end:
 	return data;
 }
 
-static int saveFloat(const char *file_name, float *output, int element_size)
+int saveFloat(const char *file_name, float *output, int element_size)
 {
 	FILE *fp;
 	int i;
@@ -198,6 +147,7 @@ int preprocess(session_str * entity, const char * image_name)
 	for (int i = 0; i < entity->io_num.n_output; i++) {
 		entity->outputs[i].want_float = 0;
 	}
+/*XXX: maybe need beautiful code style*/
 /*end:*/
 	return ret;
 }
@@ -365,9 +315,10 @@ int inference(session_str * entity)
 				entity->outputs, NULL);
 	return retval;
 }
-/*-------------------------------------------
-				Main Functions
--------------------------------------------*/
+
+/* test API */
+#if 1
+double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 int main(int argc, char **argv)
 {
 	os_printf("compile time %s\n", __TIME__);
@@ -401,3 +352,4 @@ int main(int argc, char **argv)
 
 	return 0;
 }
+#endif
