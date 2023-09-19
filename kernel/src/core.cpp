@@ -103,12 +103,12 @@ int preprocess(session_str * entity, const char * image_name)
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
 	entity->orig_img = cv::imread(image_name, 1);
-	if (!entity->orig_img.data) {
-		printf("cv::imread %s fail!\n", image_name);
-		return -1;
-	}
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
+	if (!entity->orig_img.data) {
+		printf("cv::imread %s fail!\n", image_name);
+		goto end;
+	}
 	img_width = img.cols;
 	img_height = img.rows;
 	os_printf("img width = %d, img height = %d\n", img_width, img_height);
@@ -147,8 +147,7 @@ int preprocess(session_str * entity, const char * image_name)
 	for (int i = 0; i < entity->io_num.n_output; i++) {
 		entity->outputs[i].want_float = 0;
 	}
-/*XXX: maybe need beautiful code style*/
-/*end:*/
+end:
 	return ret;
 }
 
