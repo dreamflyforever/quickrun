@@ -53,11 +53,6 @@ typedef struct session_str {
 	cv::Mat orig_img;
 } session_str;
 
-
-/*-------------------------------------------
-				  Functions
--------------------------------------------*/
-
 static void dump_tensor_attr(rknn_tensor_attr *attr)
 {
 	os_printf("  index=%d, name=%s, n_dims=%d, dims=[%d, %d, %d, %d],"
@@ -327,7 +322,6 @@ int session_init(session_str ** entity, const char * model_name)
 	(*entity)->model_height = height;
 	(*entity)->model_width = width;
 	(*entity)->model_channel = channel;
-	os_printf("===========\n");
 	memset((*entity)->inputs, 0, sizeof((*entity)->inputs));
 	(*entity)->inputs[0].index = 0;
 	(*entity)->inputs[0].type = RKNN_TENSOR_UINT8;
@@ -366,12 +360,9 @@ int session_deinit(session_str * entity)
 int inference(session_str * entity)
 {
 	int retval = -1;
-	os_printf("==============\n");
 	retval = rknn_run(entity->ctx, NULL);
-	os_printf("==============\n");
 	retval = rknn_outputs_get(entity->ctx, entity->io_num.n_output,
 				entity->outputs, NULL);
-	os_printf("==============\n");
 	return retval;
 }
 /*-------------------------------------------
