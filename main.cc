@@ -70,11 +70,20 @@ int main(int argc, char **argv)
 
 	model_name = (char *)argv[1];
 	char * image_name = argv[2];
-//#if test_multi_pthread_model
-#if 1 
+
+#define test_multi_pthread_model 1
+#if test_multi_pthread_model
 	task_model_str one_entity;
 	set_img(image_name);
 	task_model_create(&one_entity, model_name, task_handle);
+
+	task_model_str two_entity;
+	set_img(image_name);
+	task_model_create(&two_entity, model_name, task_handle);
+
+	task_model_str three_entity;
+	set_img(image_name);
+	task_model_create(&three_entity, model_name, task_handle);
 #endif
 	session_init(&entity, model_name);
 	os_printf("Read %s ...\n", image_name);
