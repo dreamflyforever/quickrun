@@ -1,10 +1,59 @@
 /*
-	This file is example for quickrun API use.
+	This file is example for quickrun API & multi model usage.
 */
 
 #include "core.h"
+#include <pthread.h>
+#include <unistd.h>
 
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
+
+char * g_img;
+void set_img(char * img)
+{
+	g_img = img;
+}
+
+char * get_img()
+{
+	return g_img;
+}
+
+typedef struct task_model_str {
+	session_str * context;
+	const char * model;
+	char * image;
+} task_model_str;
+
+void * task_handle(void * arg)
+{
+	os_printf("one model\n");
+	task_model_str * entity = (task_model_str * ) arg;
+	entity->image = get_img();
+	session_init(&(entity->context), entity->model);
+	preprocess(entity->context, entity->image);
+	while (1) {
+		inference(entity->context);
+		postprocess(entity->context);
+	}
+	session_deinit(entity->context);
+}
+
+typedef void * (*func_str) (void *p_arg);
+int task_model_create(task_model_str * entity,
+			const char * model,
+			func_str func)
+{
+	int retval = -1;
+	pthread_t task;
+	entity->model = model;
+	retval = pthread_create(&task, NULL, func, entity);
+	if (pthread_join(task, NULL) != 0) {
+			fprintf(stderr, "Failed to join thread.\n");
+	}
+	os_printf("create phtread success\n");
+	return retval;
+}
 
 int main(int argc, char **argv)
 {
@@ -21,7 +70,12 @@ int main(int argc, char **argv)
 
 	model_name = (char *)argv[1];
 	char * image_name = argv[2];
-	
+//#if test_multi_pthread_model
+#if 1 
+	task_model_str one_entity;
+	set_img(image_name);
+	task_model_create(&one_entity, model_name, task_handle);
+#endif
 	session_init(&entity, model_name);
 	os_printf("Read %s ...\n", image_name);
 	
@@ -37,6 +91,8 @@ int main(int argc, char **argv)
 	postprocess(entity);
 
 	session_deinit(entity);
-
+	while (1) {
+		sleep(10);
+	}
 	return 0;
 }
