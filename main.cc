@@ -73,14 +73,17 @@ int main(int argc, char **argv)
 
 #define test_multi_pthread_model 1
 #if test_multi_pthread_model
+	/*one model*/
 	task_model_str one_entity;
 	set_img(image_name);
 	task_model_create(&one_entity, model_name, task_handle);
-
+	
+	/*send model*/
 	task_model_str two_entity;
 	set_img(image_name);
 	task_model_create(&two_entity, model_name, task_handle);
 
+	/*third model*/
 	task_model_str three_entity;
 	set_img(image_name);
 	task_model_create(&three_entity, model_name, task_handle);
