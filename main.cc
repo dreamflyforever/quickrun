@@ -8,6 +8,7 @@
 
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
+
 char * g_img;
 void set_img(char * img)
 {
@@ -23,19 +24,25 @@ typedef struct task_model_str {
 	session_str * context;
 	const char * model;
 	char * image;
+	int pid;
 } task_model_str;
 
 void * task_handle(void * arg)
 {
-	os_printf("one model\n");
 	task_model_str * entity = (task_model_str * ) arg;
+	struct timeval start_time, stop_time;
+	sleep(1);
 	entity->image = get_img();
 	session_init(&(entity->context), entity->model);
 	preprocess(entity->context, entity->image);
 	while (1) {
+		gettimeofday(&start_time, NULL);
 		inference(entity->context);
-		postprocess(entity->context);
+		gettimeofday(&stop_time, NULL);
+		os_printf("pid: %d infernce run use %f ms\n", entity->pid, (__get_us(stop_time) - __get_us(start_time)) / 1000);
+		sleep(0.1);
 	}
+	postprocess(entity->context);
 	session_deinit(entity->context);
 }
 
@@ -48,9 +55,9 @@ int task_model_create(task_model_str * entity,
 	pthread_t task;
 	entity->model = model;
 	retval = pthread_create(&task, NULL, func, entity);
-	if (pthread_join(task, NULL) != 0) {
-			fprintf(stderr, "Failed to join thread.\n");
-	}
+	//if (pthread_join(task, NULL) != 0) {
+	//		fprintf(stderr, "Failed to join thread.\n");
+	//}
 	os_printf("create phtread success\n");
 	return retval;
 }
@@ -75,16 +82,18 @@ int main(int argc, char **argv)
 #if test_multi_pthread_model
 	/*one model*/
 	task_model_str one_entity;
+	one_entity.pid = 1;
 	set_img(image_name);
 	task_model_create(&one_entity, model_name, task_handle);
-	
 	/*send model*/
 	task_model_str two_entity;
+	two_entity.pid = 2;
 	set_img(image_name);
 	task_model_create(&two_entity, model_name, task_handle);
 
 	/*third model*/
 	task_model_str three_entity;
+	three_entity.pid = 3;
 	set_img(image_name);
 	task_model_create(&three_entity, model_name, task_handle);
 #endif
@@ -102,9 +111,10 @@ int main(int argc, char **argv)
 
 	postprocess(entity);
 
-	session_deinit(entity);
 	while (1) {
-		sleep(10);
+		sleep(5);
+		os_printf("main runing\n");
 	}
+	session_deinit(entity);
 	return 0;
 }
