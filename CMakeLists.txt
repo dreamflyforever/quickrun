@@ -37,9 +37,13 @@ set(CMAKE_INSTALL_RPATH "lib")
 # quickrun
 include_directories( ${CMAKE_SOURCE_DIR}/kernel/include)
 
+#v4l2
+include_directories( ${CMAKE_SOURCE_DIR}/libv4l/)
+
 add_executable(quickrun
         kernel/src/core.cpp
         kernel/src/postprocess.cpp
+        libv4l2/v4l2_wrap.cpp
 	main.cc
 )
 
