@@ -4,6 +4,19 @@
 */
 #include "core.h"
 
+long long get_timestamp(void)//获取时间戳函数
+{
+    long long tmp;
+    struct timeval tv;
+
+    gettimeofday(&tv, NULL);
+    tmp = tv.tv_sec;
+    tmp = tmp * 1000;
+    tmp = tmp + (tv.tv_usec / 1000);
+
+    return tmp;
+}
+
 void dump_tensor_attr(rknn_tensor_attr *attr)
 {
 	os_printf("  index=%d, name=%s, n_dims=%d, dims=[%d, %d, %d, %d],"
@@ -102,9 +115,12 @@ int preprocess(session_str * entity, const char * image_name)
 	memset(&dst_rect, 0, sizeof(dst_rect));
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
+	long long start = get_timestamp();
 	entity->orig_img = cv::imread(image_name, 1);
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
+	long long end = get_timestamp();
+	os_printf("delay: %d\n", (end - start));
 	if (!entity->orig_img.data) {
 		os_printf("cv::imread %s fail!\n", image_name);
 		goto end;
@@ -142,11 +158,13 @@ int preprocess(session_str * entity, const char * image_name)
 	rknn_inputs_set(entity->ctx, (entity->io_num).n_input, entity->inputs);
 
 	entity->outputs = (rknn_output * )malloc(entity->io_num.n_output * sizeof(rknn_output));
-	memset(entity->outputs, 0, sizeof(entity->outputs));
+	memset(entity->outputs, 0, entity->io_num.n_output * sizeof(rknn_output));
 	for (int i = 0; i < entity->io_num.n_output; i++) {
 		entity->outputs[i].want_float = 0;
 	}
 end:
+	if (entity->resize_buf)
+		free(entity->resize_buf);
 	return ret;
 }
 
@@ -177,7 +195,8 @@ int postprocess(session_str * entity)
 			(int8_t *)outputs[2].buf, height, width,
 			box_conf_threshold, nms_threshold, scale_w,
 			scale_h, out_zps, out_scales, &detect_result_group);
-
+	if (entity->outputs)
+		free(entity->outputs);
 	/*Draw Objects*/
 	char text[256];
 	for (int i = 0; i < detect_result_group.count; i++) {
@@ -194,6 +213,8 @@ int postprocess(session_str * entity)
 	}
 
 	imwrite("./out.jpg", entity->orig_img);
+	retval = rknn_outputs_release(entity->ctx,
+		entity->io_num.n_output, entity->outputs);
 	return retval;
 }
 
@@ -235,7 +256,8 @@ int session_init(session_str ** entity, const char * model_name)
 		((*entity)->io_num).n_input, ((*entity)->io_num).n_output);
 
 	(*entity)->input_attrs = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
-	memset((*entity)->input_attrs, 0, sizeof((*entity)->input_attrs));
+	memset((*entity)->input_attrs, 0, ((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
+	os_printf(">>>>>>>>>%d\n", sizeof((*entity)->input_attrs));
 	for (i = 0; i < ((*entity)->io_num).n_input; i++) {
 		((*entity)->input_attrs[i]).index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_INPUT_ATTR,
@@ -247,7 +269,7 @@ int session_init(session_str ** entity, const char * model_name)
 		dump_tensor_attr(&((*entity)->input_attrs[i]));
 	}
 	(*entity)->output_attrs  = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_output * sizeof(rknn_tensor_attr));
-	memset((*entity)->output_attrs, 0, sizeof((*entity)->output_attrs));
+	memset((*entity)->output_attrs, 0, ((*entity)->io_num).n_output * sizeof(rknn_tensor_attr));
 	for (i = 0; i < ((*entity)->io_num).n_output; i++) {
 		((*entity)->output_attrs[i]).index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_OUTPUT_ATTR,
@@ -277,7 +299,6 @@ int session_init(session_str ** entity, const char * model_name)
 	(*entity)->inputs[0].fmt = RKNN_TENSOR_NHWC;
 	(*entity)->inputs[0].pass_through = 0;
 
-
 end:
 	return ret;
 }
@@ -285,8 +306,6 @@ end:
 int session_deinit(session_str * entity)
 {
 	int retval = -1;
-	retval = rknn_outputs_release(entity->ctx,
-			entity->io_num.n_output, entity->outputs);
 	// release
 	retval = rknn_destroy(entity->ctx);
 
@@ -299,7 +318,8 @@ int session_deinit(session_str * entity)
 	}
 	free(entity->input_attrs);
 	free(entity->output_attrs);
-	free(entity->outputs);
+	if (entity->outputs)
+		free(entity->outputs);
 	free(entity);
 
 	return retval;
@@ -308,9 +328,21 @@ int session_deinit(session_str * entity)
 int inference(session_str * entity)
 {
 	int retval = -1;
+	if (entity == NULL) {
+		os_printf("error\n");
+		assert(0);
+	}
+	os_printf("======\n");
+	if (entity->ctx == NULL)
+		os_printf("======\n");
+	if (entity->outputs == NULL)	
+		os_printf("======\n");
+	os_printf("entity: %p, ctx: %p\n", entity, entity->ctx);
 	retval = rknn_run(entity->ctx, NULL);
+	os_printf("======\n");
 	retval = rknn_outputs_get(entity->ctx, entity->io_num.n_output,
 				entity->outputs, NULL);
+	os_printf("======\n");
 	return retval;
 }
 
