@@ -120,7 +120,7 @@ int preprocess(session_str * entity, const char * image_name)
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
 	long long end = get_timestamp();
-	os_printf("delay: %d\n", (end - start));
+	os_printf("delay: %lld ms\n", (end - start));
 	if (!entity->orig_img.data) {
 		os_printf("cv::imread %s fail!\n", image_name);
 		goto end;
@@ -257,7 +257,7 @@ int session_init(session_str ** entity, const char * model_name)
 
 	(*entity)->input_attrs = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
 	memset((*entity)->input_attrs, 0, ((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
-	os_printf(">>>>>>>>>%d\n", sizeof((*entity)->input_attrs));
+	os_printf(">>>>>>>>>%lld\n", sizeof((*entity)->input_attrs));
 	for (i = 0; i < ((*entity)->io_num).n_input; i++) {
 		((*entity)->input_attrs[i]).index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_INPUT_ATTR,
@@ -332,17 +332,14 @@ int inference(session_str * entity)
 		os_printf("error\n");
 		assert(0);
 	}
-	os_printf("======\n");
 	if (entity->ctx == NULL)
 		os_printf("======\n");
 	if (entity->outputs == NULL)	
 		os_printf("======\n");
-	os_printf("entity: %p, ctx: %p\n", entity, entity->ctx);
+	//os_printf("entity: %p, ctx: %p\n", entity, entity->ctx);
 	retval = rknn_run(entity->ctx, NULL);
-	os_printf("======\n");
 	retval = rknn_outputs_get(entity->ctx, entity->io_num.n_output,
 				entity->outputs, NULL);
-	os_printf("======\n");
 	return retval;
 }
 

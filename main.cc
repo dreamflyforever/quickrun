@@ -118,5 +118,5 @@ int main(int argc, char **argv)
 		os_printf("main runing\n");
 	}
 	session_deinit(entity);
-	return 0;
+	return ret;
 }
