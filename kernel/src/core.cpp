@@ -4,7 +4,8 @@
 */
 #include "core.h"
 
-long long get_timestamp(void)//获取时间戳函数
+/*get system timestamp*/
+long long get_timestamp(void)
 {
     long long tmp;
     struct timeval tv;
@@ -210,6 +211,10 @@ int postprocess(session_str * entity)
 		int y2 = det_result->box.bottom;
 		rectangle(entity->orig_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0, 255), 3);
 		putText(entity->orig_img, text, cv::Point(x1, y1 + 12), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
+
+		if (entity->cb != NULL) {
+			entity->cb(det_result);
+		}
 	}
 
 	imwrite("./out.jpg", entity->orig_img);
@@ -298,7 +303,7 @@ int session_init(session_str ** entity, const char * model_name)
 	(*entity)->inputs[0].size = width * height * channel;
 	(*entity)->inputs[0].fmt = RKNN_TENSOR_NHWC;
 	(*entity)->inputs[0].pass_through = 0;
-
+	(*entity)->cb = NULL;
 end:
 	return ret;
 }
@@ -343,6 +348,12 @@ int inference(session_str * entity)
 	return retval;
 }
 
+int set_user_cb(session_str * entity, USER_CB cb)
+{
+	int retval;
+	entity->cb = cb;
+	return retval;
+}
 /* test API */
 #if 0
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }

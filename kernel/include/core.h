@@ -21,6 +21,8 @@
 
 #define uint8 unsigned char 
 
+typedef int (*USER_CB) (void * p_arg);
+
 typedef struct session_str {
 	rknn_context ctx;
 	int model_width;
@@ -38,6 +40,7 @@ typedef struct session_str {
 	int img_channel;
 	uint8 * model_data;
 	cv::Mat orig_img;
+	USER_CB cb;
 } session_str;
 
 void dump_tensor_attr(rknn_tensor_attr *attr);
@@ -51,6 +54,7 @@ int postprocess(session_str * entity);
 int session_init(session_str ** entity, const char * model_name);
 int session_deinit(session_str * entity);
 int inference(session_str * entity);
+int set_user_cb(session_str * entity, USER_CB cb);
 
 /* debug printf*/
 #define DEBUG 1
@@ -62,5 +66,3 @@ int inference(session_str * entity);
 #else
 #define os_printf(format, ...) 
 #endif
-
-
