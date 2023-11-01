@@ -5,9 +5,9 @@
 #include "core.h"
 #include <pthread.h>
 #include <unistd.h>
+#include "libv4l2.h"
 
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
-
 
 char * g_img;
 void set_img(char * img)

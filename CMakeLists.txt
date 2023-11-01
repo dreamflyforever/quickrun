@@ -41,12 +41,17 @@ set(CMAKE_INSTALL_RPATH "lib")
 include_directories( ${CMAKE_SOURCE_DIR}/kernel/include)
 
 #v4l2
-include_directories( ${CMAKE_SOURCE_DIR}/libv4l/)
+include_directories( ${CMAKE_SOURCE_DIR}/libv4l2)
+
+#getusbdev
+include_directories( ${CMAKE_SOURCE_DIR}/getusbdevice)
 
 add_executable(quickrun
         kernel/src/core.cpp
         kernel/src/postprocess.cpp
         libv4l2/v4l2_wrap.cpp
+        libv4l2/capture.cpp
+	getusbdevice/find_usbdevice.cpp
 	main.cc
 )
 

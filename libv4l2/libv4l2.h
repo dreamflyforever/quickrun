@@ -325,6 +325,6 @@ int v4l2_s_parm(int fd, struct v4l2_streamparm *streamparm);
  */
 int v4l2_poll(int fd);
 
-
+char * capture();
 
 #endif //_LIBV4L2_H_
