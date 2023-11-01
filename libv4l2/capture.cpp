@@ -112,8 +112,8 @@ char * capture()
 	char DEFAULT_DEV[13] = {0};
 
 	memset(&cap, 0, sizeof(cap));
-	int argc = 1;
-	char argv[][11] = {"", "/dev/vide0", "80"};
+	int argc = 3;
+	char argv[][13] = {"", "/dev/video6", "80"};
 	if (argc != 3) {
 		/*check pid-vid search the device*/
 		#if 1
