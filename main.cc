@@ -5,7 +5,12 @@
 #include "core.h"
 #include <pthread.h>
 #include <unistd.h>
+
+#define CAPTURE_PICTURE 1
+
+#if CAPTURE_PICTURE
 #include "libv4l2.h"
+#endif
 
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
@@ -67,7 +72,10 @@ int main(int argc, char **argv)
 	char *model_name = NULL;
 	struct timeval start_time, stop_time;
 	int ret;
+
+#if CAPTURE_PICTURE
 	char * get_picture = (char *)malloc(20);
+#endif
 	os_printf("compile time %s\n", __TIME__);
 	session_str * entity;
 	if (argc != 3) {
@@ -104,10 +112,13 @@ int main(int argc, char **argv)
 	os_printf("Read %s ...\n", image_name);
 
 	while (1) {
+#if CAPTURE_PICTURE
 		memset(get_picture, 0, 20);
 		get_picture = capture();
 		preprocess(entity, get_picture);
-		//preprocess(entity, image_name);
+#else
+		preprocess(entity, image_name);
+#endif
 		/* create the neural network */
 		os_printf("inference ...\n");
 		gettimeofday(&start_time, NULL);
@@ -119,7 +130,9 @@ int main(int argc, char **argv)
 		postprocess(entity);
 
 		os_printf("main runing\n");
+#if CAPTURE_PICTURE
 		free(get_picture);
+#endif
 	}
 	session_deinit(entity);
 	return ret;
