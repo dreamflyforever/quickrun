@@ -13,8 +13,8 @@
 #include "libv4l2.h"
 //#define FORMAT V4L2_PIX_FMT_YUYV
 
-//#define FORMAT V4L2_PIX_FMT_MJPEG
-#define FORMAT V4L2_PIX_FMT_H264
+#define FORMAT V4L2_PIX_FMT_MJPEG
+//#define FORMAT V4L2_PIX_FMT_H264
 
 int set_exposure(int Handle, int exposure)
 {
@@ -104,8 +104,9 @@ char * capture()
 	struct v4l2_capability cap;
 	struct v4l2_buf* v4l2_buf;
 	struct v4l2_buf_unit* v4l2_buf_unit;
-	FILE* fp;
-	char str[20] = {0};
+	FILE * fp;
+	char *str = (char *)malloc(20);
+	memset(str, 0, 20);
 	int t;
 	char dev_name[10] = {0};
 	char DEFAULT_DEV[13] = {0};
@@ -133,7 +134,7 @@ char * capture()
 	}
 	printf("%s\n", DEFAULT_DEV);
 	t = time((time_t*)NULL);
-	sprintf(str, "%d.h264", t);
+	sprintf(str, "%d.jpeg", t);
 	printf("str: %s\n", str);
 	fp = fopen(str, "w+");
 	if (!fp) {
@@ -233,7 +234,7 @@ char * capture()
 	v4l2_close(fd);
 	fclose(fp);
 
-	return 0;
+	return str;
 
 err:
 	perror("err");

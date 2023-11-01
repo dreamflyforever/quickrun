@@ -67,7 +67,7 @@ int main(int argc, char **argv)
 	char *model_name = NULL;
 	struct timeval start_time, stop_time;
 	int ret;
-
+	char * get_picture = (char *)malloc(20);
 	os_printf("compile time %s\n", __TIME__);
 	session_str * entity;
 	if (argc != 3) {
@@ -104,7 +104,10 @@ int main(int argc, char **argv)
 	os_printf("Read %s ...\n", image_name);
 
 	while (1) {
-		preprocess(entity, image_name);
+		memset(get_picture, 0, 20);
+		get_picture = capture();
+		preprocess(entity, get_picture);
+		//preprocess(entity, image_name);
 		/* create the neural network */
 		os_printf("inference ...\n");
 		gettimeofday(&start_time, NULL);
@@ -116,6 +119,7 @@ int main(int argc, char **argv)
 		postprocess(entity);
 
 		os_printf("main runing\n");
+		free(get_picture);
 	}
 	session_deinit(entity);
 	return ret;
