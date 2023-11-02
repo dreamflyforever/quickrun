@@ -216,8 +216,16 @@ int postprocess(session_str * entity)
 			entity->cb(det_result);
 		}
 	}
-
-	imwrite("./out.jpg", entity->orig_img);
+	if (detect_result_group.count == 0) {} else {
+		//imwrite("./out.jpg", entity->orig_img);
+		char *str = (char *)malloc(20);
+		memset(str, 0, 20);
+		static int t = 0;
+		sprintf(str, "%d_out.jpeg", t);
+		imwrite(str, entity->orig_img);
+		free(str);
+		t++;
+	}
 	retval = rknn_outputs_release(entity->ctx,
 		entity->io_num.n_output, entity->outputs);
 	return retval;

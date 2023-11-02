@@ -98,7 +98,7 @@ char * capture()
 	int ret;
 	int num;
 	char name[100] = {0};
-	int width = 1600, height = 1200;
+	int width = 640, height = 360;
 	int nr_bufs = 4;
 	int i;
 	struct v4l2_capability cap;
@@ -113,7 +113,7 @@ char * capture()
 
 	memset(&cap, 0, sizeof(cap));
 	int argc = 3;
-	char argv[][13] = {"", "/dev/video6", "80"};
+	char argv[][13] = {"", "/dev/video4", "80"};
 	if (argc != 3) {
 		/*check pid-vid search the device*/
 		#if 1

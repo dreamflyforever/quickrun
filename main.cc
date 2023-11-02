@@ -74,7 +74,7 @@ int main(int argc, char **argv)
 	int ret;
 
 #if CAPTURE_PICTURE
-	char * get_picture = (char *)malloc(20);
+	char * get_picture = NULL;
 #endif
 	os_printf("compile time %s\n", __TIME__);
 	session_str * entity;
@@ -86,7 +86,8 @@ int main(int argc, char **argv)
 	//model_name = (char *)argv[1];
 	//char * image_name = argv[2];
 
-	model_name = "assets/yolov5s_logo_quan_0918.rknn";
+	//model_name = "assets/yolov5s_logo_quan_0918.rknn";
+	model_name = "assets/yolov5s_bottle_quan_1102.rknn";
 	char * image_name = "assets/logo.jpg";
 
 #define test_multi_pthread_model 0
@@ -113,7 +114,6 @@ int main(int argc, char **argv)
 
 	while (1) {
 #if CAPTURE_PICTURE
-		memset(get_picture, 0, 20);
 		get_picture = capture();
 		preprocess(entity, get_picture);
 #else
