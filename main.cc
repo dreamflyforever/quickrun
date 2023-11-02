@@ -67,6 +67,13 @@ int task_model_create(task_model_str * entity,
 	return retval;
 }
 
+int bbox_cb(void * arg)
+{
+	int retval = 0;
+	os_printf("user data\n");
+	return retval;
+}
+
 int main(int argc, char **argv)
 {
 	char *model_name = NULL;
@@ -110,6 +117,8 @@ int main(int argc, char **argv)
 	task_model_create(&three_entity, model_name, task_handle);
 #endif
 	session_init(&entity, model_name);
+	set_user_cb(entity, bbox_cb);
+
 	os_printf("Read %s ...\n", image_name);
 
 	while (1) {
