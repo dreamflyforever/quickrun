@@ -74,12 +74,36 @@ int bbox_cb(void * arg)
 	return retval;
 }
 
+int framecount = 0;
+time_t lasttime;
+void updatefps() {
+	// 增加帧计数
+	framecount++;
+
+	// 获取当前时间
+	time_t currentTime;
+	time(&currentTime);
+
+	// 计算时间差
+	double deltaTime = difftime(currentTime, lasttime);
+
+	// 如果时间差大于等于1秒，则计算FPS
+	if (deltaTime >= 1) {
+		double fps = framecount / deltaTime;
+
+		os_printf(">>>>>>>> FPS: %.2f\n", fps);
+
+		// 重置帧计数和时间戳
+		framecount = 0;
+		time(&lasttime);
+	}
+}
+
 int main(int argc, char **argv)
 {
 	char *model_name = NULL;
 	struct timeval start_time, stop_time;
 	int ret;
-
 #if CAPTURE_PICTURE
 	char * get_picture = NULL;
 #endif
@@ -137,7 +161,7 @@ int main(int argc, char **argv)
 		printf("once run use %f ms\n", (__get_us(stop_time) - __get_us(start_time)) / 1000);
 
 		postprocess(entity);
-
+		updatefps();
 		os_printf("main runing\n");
 #if CAPTURE_PICTURE
 		free(get_picture);
