@@ -219,20 +219,30 @@ img_str * capture()
 	img->ptr = (char * )malloc(img->size);
 	memcpy(img->ptr, v4l2_buf_unit->start, img->size);
 	ret = v4l2_qbuf(fd, v4l2_buf_unit);
-	if(ret < 0)
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
 		goto err;
+	}
 
 	ret = v4l2_streamoff(fd);
-	if(ret < 0)
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
 		goto err;
-
+	}
 	ret = v4l2_munmap(fd, v4l2_buf);
-	if(ret < 0)
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
 		goto err;
-
+	}
 	ret = v4l2_relbufs(v4l2_buf);
-	if(ret < 0)
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
 		goto err;
+	}
 
 	v4l2_close(fd);
 	fclose(fp);
