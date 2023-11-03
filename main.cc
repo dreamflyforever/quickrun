@@ -12,6 +12,8 @@
 #include "libv4l2.h"
 #endif
 
+#include "static_q.h"
+
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
 #define test_multi_pthread_model 0
@@ -103,10 +105,39 @@ void updatefps() {
 	}
 }
 
+#define Q_SIZE 1024
+uint8 g_q[Q_SIZE];
+queue_t q_entity;
+void * camera_phread(void * arg)
+{
+	os_printf("start camera.....\n");
+	queue_init(&q_entity, g_q, Q_SIZE);
+
+	img_str * img;
+	int ret;
+	while (1) {
+		img  = capture();
+		ret = queue_in(&q_entity, (uint8 *)img, sizeof(img_str));
+		os_printf("queue in ret: %d\n", ret);
+		usleep(25000);
+	}
+}
+
+int start_camera()
+{
+	int retval;
+	pthread_t camera_task;
+	retval = pthread_create(&camera_task, NULL, camera_phread, NULL);
+	return retval;
+}
+
 /*port camera API*/
 img_str * quickrun_capture()
 {
-	img_str * img  = capture();
+	img_str * img  = (img_str *)malloc(sizeof(img_str));
+	int ret;
+	ret = queue_out(&q_entity, (uint8 *)img, sizeof(img_str));
+	os_printf("queue out ret: %d\n", ret);
 	return img;
 }
 
@@ -151,6 +182,7 @@ int main(int argc, char **argv)
 	set_img(image_name);
 	task_model_create(&three_entity, model_name, task_handle);
 #endif
+	start_camera();
 	session_init(&entity, model_name);
 	set_user_cb(entity, bbox_cb);
 
@@ -159,6 +191,11 @@ int main(int argc, char **argv)
 	while (1) {
 #if CAPTURE_PICTURE
 		get_picture = quickrun_capture();
+		if (get_picture == NULL) {
+			os_printf("picture NULL from the queue\n");
+			sleep(1);
+			continue;
+		}
 		preprocess(entity, get_picture);
 #else
 		preprocess(entity, image_name);

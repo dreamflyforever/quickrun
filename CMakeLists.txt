@@ -46,12 +46,16 @@ include_directories( ${CMAKE_SOURCE_DIR}/libv4l2)
 #getusbdev
 include_directories( ${CMAKE_SOURCE_DIR}/getusbdevice)
 
+#static queue
+include_directories( ${CMAKE_SOURCE_DIR}/queue)
+
 add_executable(quickrun
         kernel/src/core.cpp
         kernel/src/postprocess.cpp
         libv4l2/v4l2_wrap.cpp
         libv4l2/capture.cpp
 	getusbdevice/find_usbdevice.cpp
+	queue/static_q.cpp
 	main.cc
 )
 
