@@ -115,7 +115,7 @@ void * camera_phread(void * arg)
 	pthread_mutex_init(&g_mtx, NULL);
 	os_printf("start camera.....\n");
 	queue_init(&q_entity, g_q, Q_SIZE);
-
+	v4l2_init();
 	img_str * img;
 	int ret;
 	while (1) {
@@ -124,7 +124,7 @@ void * camera_phread(void * arg)
 		ret = queue_in(&q_entity, (uint8 *)img, sizeof(img_str));
 		pthread_mutex_unlock(&g_mtx);
 		os_printf("queue in ret: %d, ptr: %p\n", ret, img->ptr);
-		usleep(25000);
+		//usleep(20000);
 		free(img);
 	}
 }
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 		get_picture = quickrun_capture();
 		if (get_picture == NULL) {
 			os_printf("picture NULL from the queue\n");
-			sleep(1);
+			usleep(20000);
 			continue;
 		}
 		preprocess(entity, get_picture);

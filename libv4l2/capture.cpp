@@ -16,6 +16,14 @@
 #define FORMAT V4L2_PIX_FMT_MJPEG
 //#define FORMAT V4L2_PIX_FMT_H264
 #define SAVE_PICTURE 0
+
+static int fd;
+static struct v4l2_buf * v4l2_buf;
+struct v4l2_buf_unit * v4l2_buf_unit;
+
+#if SAVE_PICTURE
+static FILE * fp;
+#endif
 int set_exposure(int Handle, int exposure)
 {
 	int ret;
@@ -94,7 +102,73 @@ int set_exposure(int Handle, int exposure)
 
 img_str * capture()
 {
-	int fd;
+	int ret;
+	img_str * img = NULL;
+	ret = v4l2_poll(fd);
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
+		goto err;
+	}
+	v4l2_buf_unit = v4l2_dqbuf(fd, v4l2_buf);
+	if(!v4l2_buf_unit) { 
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
+		goto err;
+	}
+#if SAVE_PICTURE
+	fwrite(v4l2_buf_unit->start, 1, v4l2_buf_unit->length, fp);
+#endif
+	img = (img_str *)malloc(sizeof(img_str));
+	img->size = v4l2_buf_unit->length;
+	img->ptr = (char * )malloc(img->size);
+	memcpy(img->ptr, v4l2_buf_unit->start, img->size);
+	ret = v4l2_qbuf(fd, v4l2_buf_unit);
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
+		free(img);
+		img = NULL;
+		goto err;
+	}
+err:
+	return img;
+}
+
+int v4l2_deinit()
+{
+	int ret;
+	ret = v4l2_streamoff(fd);
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
+		goto err;
+	}
+	ret = v4l2_munmap(fd, v4l2_buf);
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
+		goto err;
+	}
+	ret = v4l2_relbufs(v4l2_buf);
+	if(ret < 0) {
+		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
+		perror("err");
+		goto err;
+	}
+
+	v4l2_close(fd);
+#if SAVE_PICTURE
+	fclose(fp);
+	free(str);
+#endif
+err:
+	perror("err");
+	return ret;
+}
+
+int v4l2_init()
+{
 	int ret;
 	int num;
 	char name[100] = {0};
@@ -102,17 +176,13 @@ img_str * capture()
 	int nr_bufs = 4;
 	int i;
 	struct v4l2_capability cap;
-	struct v4l2_buf* v4l2_buf;
-	struct v4l2_buf_unit* v4l2_buf_unit;
 #if SAVE_PICTURE
-	FILE * fp;
 	char *str = (char *)malloc(20);
 	memset(str, 0, 20);
 	int t;
 #endif
 	char dev_name[10] = {0};
 	char DEFAULT_DEV[13] = {0};
-	img_str * img = NULL;
 	memset(&cap, 0, sizeof(cap));
 	int argc = 3;
 	char argv[][13] = {"", "/dev/video4", "80"};
@@ -220,6 +290,7 @@ img_str * capture()
 	if(ret < 0) {
 		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
 		perror("err");
+		assert(0);
 		goto err;
 	}
 	ret = v4l2_streamon(fd);
@@ -228,62 +299,6 @@ img_str * capture()
 		perror("err");
 		goto err;
 	}
-	ret = v4l2_poll(fd);
-	if(ret < 0) {
-		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
-		perror("err");
-		goto err;
-	}
-	v4l2_buf_unit = v4l2_dqbuf(fd, v4l2_buf);
-	if(!v4l2_buf_unit) { 
-		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
-		perror("err");
-		goto err;
-	}
-#if SAVE_PICTURE
-	fwrite(v4l2_buf_unit->start, 1, v4l2_buf_unit->length, fp);
-#endif
-	img = (img_str *)malloc(sizeof(img_str));
-	img->size = v4l2_buf_unit->length;
-	img->ptr = (char * )malloc(img->size);
-	memcpy(img->ptr, v4l2_buf_unit->start, img->size);
-	ret = v4l2_qbuf(fd, v4l2_buf_unit);
-	if(ret < 0) {
-		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
-		perror("err");
-		goto err;
-	}
-
-	ret = v4l2_streamoff(fd);
-	if(ret < 0) {
-		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
-		perror("err");
-		goto err;
-	}
-	ret = v4l2_munmap(fd, v4l2_buf);
-	if(ret < 0) {
-		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
-		perror("err");
-		goto err;
-	}
-	ret = v4l2_relbufs(v4l2_buf);
-	if(ret < 0) {
-		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
-		perror("err");
-		goto err;
-	}
-
-	v4l2_close(fd);
-#if SAVE_PICTURE
-	fclose(fp);
-	free(str);
-#endif
-	printf("capture picture success\n");
-	//return str;
-	return img;
-
 err:
-	perror("err");
-
-	return NULL;
+	return ret;
 }

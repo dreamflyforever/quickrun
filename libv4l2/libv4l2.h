@@ -326,5 +326,7 @@ int v4l2_s_parm(int fd, struct v4l2_streamparm *streamparm);
 int v4l2_poll(int fd);
 
 img_str * capture();
+int v4l2_deinit();
+int v4l2_init();
 
 #endif //_LIBV4L2_H_
