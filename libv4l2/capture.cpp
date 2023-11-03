@@ -173,6 +173,7 @@ int v4l2_init()
 	int num;
 	char name[100] = {0};
 	int width = 640, height = 360;
+	//int width = 1600, height = 1200;
 	int nr_bufs = 4;
 	int i;
 	struct v4l2_capability cap;
