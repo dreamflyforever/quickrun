@@ -14,6 +14,8 @@
 
 #include "static_q.h"
 
+pthread_mutex_t g_mtx;
+
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
 #define test_multi_pthread_model 0
@@ -110,6 +112,7 @@ uint8 g_q[Q_SIZE];
 queue_t q_entity;
 void * camera_phread(void * arg)
 {
+	pthread_mutex_init(&g_mtx, NULL);
 	os_printf("start camera.....\n");
 	queue_init(&q_entity, g_q, Q_SIZE);
 
@@ -117,9 +120,12 @@ void * camera_phread(void * arg)
 	int ret;
 	while (1) {
 		img  = capture();
+		pthread_mutex_lock(&g_mtx);
 		ret = queue_in(&q_entity, (uint8 *)img, sizeof(img_str));
-		os_printf("queue in ret: %d\n", ret);
+		pthread_mutex_unlock(&g_mtx);
+		os_printf("queue in ret: %d, ptr: %p\n", ret, img->ptr);
 		usleep(25000);
+		free(img);
 	}
 }
 
@@ -136,8 +142,15 @@ img_str * quickrun_capture()
 {
 	img_str * img  = (img_str *)malloc(sizeof(img_str));
 	int ret;
+	pthread_mutex_lock(&g_mtx);
 	ret = queue_out(&q_entity, (uint8 *)img, sizeof(img_str));
-	os_printf("queue out ret: %d\n", ret);
+	pthread_mutex_unlock(&g_mtx);
+	if (ret == 0 || ret == -1) {
+		free(img);
+		img = NULL;
+	} else {
+		os_printf("queue out ret: %d, ptr: %p\n", ret, img->ptr);
+	}
 	return img;
 }
 
