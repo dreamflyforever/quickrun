@@ -97,7 +97,10 @@ end:
 	return 0;
 }
 
-int preprocess(session_str * entity, const char * image_name)
+/*
+	image_ptr is picture buffer head point in ram
+*/
+int preprocess(session_str * entity, img_str * image)
 {
 	int ret = -1;
 	int img_width = 0;
@@ -117,13 +120,18 @@ int preprocess(session_str * entity, const char * image_name)
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
 	long long start = get_timestamp();
-	entity->orig_img = cv::imread(image_name, 1);
+
+	cv::_InputArray pic_arr(image->ptr, image->size);
+	entity->orig_img = cv::imdecode(pic_arr, cv::IMREAD_UNCHANGED);
+	//cv::imshow("123", src_mat);
+
+	//entity->orig_img = cv::imread(image_ptr, 1);
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
 	long long end = get_timestamp();
 	os_printf("delay: %lld ms\n", (end - start));
 	if (!entity->orig_img.data) {
-		os_printf("cv::imread %s fail!\n", image_name);
+		os_printf("cv::imread %f fail!\n", image);
 		goto end;
 	}
 	img_width = img.cols;

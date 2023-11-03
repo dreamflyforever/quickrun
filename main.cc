@@ -14,6 +14,8 @@
 
 double __get_us(struct timeval t) { return (t.tv_sec * 1000000 + t.tv_usec); }
 
+#define test_multi_pthread_model 0
+#if test_multi_pthread_model
 char * g_img;
 void set_img(char * img)
 {
@@ -67,6 +69,8 @@ int task_model_create(task_model_str * entity,
 	return retval;
 }
 
+#endif
+
 int bbox_cb(void * arg)
 {
 	int retval = 0;
@@ -99,13 +103,20 @@ void updatefps() {
 	}
 }
 
+/*port camera API*/
+img_str * quickrun_capture()
+{
+	img_str * img  = capture();
+	return img;
+}
+
 int main(int argc, char **argv)
 {
 	char *model_name = NULL;
 	struct timeval start_time, stop_time;
 	int ret;
 #if CAPTURE_PICTURE
-	char * get_picture = NULL;
+	img_str * get_picture = NULL;
 #endif
 	os_printf("compile time %s\n", __TIME__);
 	session_str * entity;
@@ -147,7 +158,7 @@ int main(int argc, char **argv)
 
 	while (1) {
 #if CAPTURE_PICTURE
-		get_picture = capture();
+		get_picture = quickrun_capture();
 		preprocess(entity, get_picture);
 #else
 		preprocess(entity, image_name);
@@ -164,6 +175,7 @@ int main(int argc, char **argv)
 		updatefps();
 		os_printf("main runing\n");
 #if CAPTURE_PICTURE
+		free(get_picture->ptr);
 		free(get_picture);
 #endif
 	}

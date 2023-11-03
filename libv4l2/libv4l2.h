@@ -3,7 +3,7 @@
 
 #include <linux/videodev2.h>
 #include <stdint.h>
-
+#include "core.h"
 
 
 struct v4l2_buf_unit {
@@ -325,6 +325,6 @@ int v4l2_s_parm(int fd, struct v4l2_streamparm *streamparm);
  */
 int v4l2_poll(int fd);
 
-char * capture();
+img_str * capture();
 
 #endif //_LIBV4L2_H_

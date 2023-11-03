@@ -92,7 +92,7 @@ int set_exposure(int Handle, int exposure)
     return 0;
 }
 
-char * capture()
+img_str * capture()
 {
 	int fd;
 	int ret;
@@ -110,7 +110,7 @@ char * capture()
 	int t;
 	char dev_name[10] = {0};
 	char DEFAULT_DEV[13] = {0};
-
+	img_str * img = NULL;
 	memset(&cap, 0, sizeof(cap));
 	int argc = 3;
 	char argv[][13] = {"", "/dev/video4", "80"};
@@ -214,7 +214,10 @@ char * capture()
 		goto err;
 
 	fwrite(v4l2_buf_unit->start, 1, v4l2_buf_unit->length, fp);
-
+	img = (img_str *)malloc(sizeof(img_str));
+	img->size = v4l2_buf_unit->length;
+	img->ptr = (char * )malloc(img->size);
+	memcpy(img->ptr, v4l2_buf_unit->start, img->size);
 	ret = v4l2_qbuf(fd, v4l2_buf_unit);
 	if(ret < 0)
 		goto err;
@@ -233,8 +236,9 @@ char * capture()
 
 	v4l2_close(fd);
 	fclose(fp);
-
-	return str;
+	free(str);
+	//return str;
+	return img;
 
 err:
 	perror("err");
