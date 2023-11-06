@@ -1,0 +1,28 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(mpp_linux_demo)
+
+#include_directories("/usr/local/include/rockchip")
+include_directories("/usr/include")
+include_directories("/usr/include/libdrm")
+
+set(CMAKE_CXX_STANDARD 11)
+
+set(SOURCE_FILES 
+		allocator_drm.c
+		allocator_ext_dma.c
+		allocator_ion.c
+		allocator_std.c
+		mpi_dec_test.c
+		os_allocator.c
+		os_env.c
+		os_mem.c
+		)
+
+        include_directories(
+                /usr/include/rockchip
+                /usr/local/include/libdrm
+                )
+
+add_executable(mpp_linux_demo ${SOURCE_FILES})
+target_link_libraries(mpp_linux_demo  -lrockchip_mpp  pthread drm )
