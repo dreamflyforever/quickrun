@@ -57,7 +57,7 @@ end:
 	return data;
 }
 
-uint8 *load_model(const char *filename, int *model_size)
+uint8 * load_model(const char *filename, int *model_size)
 {
 	FILE * fp;
 	uint8 * data = NULL;
@@ -97,6 +97,25 @@ end:
 	return 0;
 }
 
+void save_file(img_str * img)
+{
+	FILE * fp;
+	char str[100] = {0};
+	int t = time((time_t*)NULL);
+	sprintf(str, "%d.jpeg", t);
+	printf("str: %s\n", str);
+	//fp = fopen(str, "w+");
+	fp = fopen("test.nv12", "w+");
+	if (!fp) {
+		perror("failed to open picture");
+		assert(0);
+	}
+	
+	fwrite(img->ptr, 1, img->size, fp);
+	fclose(fp);
+	return ;
+}
+
 /*
 	image_ptr is picture buffer head point in ram
 */
@@ -120,12 +139,17 @@ int preprocess(session_str * entity, img_str * image)
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
 	long long start = get_timestamp();
-
+#if 0
 	cv::_InputArray pic_arr(image->ptr, image->size);
 	entity->orig_img = cv::imdecode(pic_arr, cv::IMREAD_UNCHANGED);
-	//cv::imshow("123", src_mat);
+#endif
+	save_file(image);
 
-	//entity->orig_img = cv::imread(image_ptr, 1);
+	extern int mpp_jpg2yuv();
+
+	mpp_jpg2yuv();
+	entity->orig_img = cv::imread("test.nv12", 1);
+
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
 	long long end = get_timestamp();

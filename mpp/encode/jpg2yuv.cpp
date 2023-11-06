@@ -505,7 +505,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
     MpiCmd mpi_cmd      = MPP_CMD_BASE;
     MppParam param      = NULL;
     RK_U32 need_split   = 1;
-    MppPollType timeout = cmd->timeout;
+    MppPollType timeout = *(MppPollType *)&(cmd->timeout);
 
     // paramter for resource malloc
     RK_U32 width        = cmd->width;

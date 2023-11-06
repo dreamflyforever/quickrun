@@ -49,6 +49,11 @@ include_directories( ${CMAKE_SOURCE_DIR}/getusbdevice)
 #static queue
 include_directories( ${CMAKE_SOURCE_DIR}/queue)
 
+#mpp
+include_directories("/usr/include")
+include_directories("/usr/include/libdrm")
+
+
 add_executable(quickrun
         kernel/src/core.cpp
         kernel/src/postprocess.cpp
@@ -56,6 +61,8 @@ add_executable(quickrun
         libv4l2/capture.cpp
 	getusbdevice/find_usbdevice.cpp
 	queue/static_q.cpp
+	mpp/encode/jpg2yuv.cpp
+	mpp/encode/utils.cpp
 	main.cc
 )
 
@@ -63,6 +70,7 @@ target_link_libraries(quickrun
   ${RKNN_RT_LIB}
   ${RGA_LIB}
   ${OpenCV_LIBS}
+  -lrockchip_mpp  pthread drm
 )
 
 
