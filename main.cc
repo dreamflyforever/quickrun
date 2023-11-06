@@ -84,24 +84,20 @@ int bbox_cb(void * arg)
 
 int framecount = 0;
 time_t lasttime;
-void updatefps() {
-	// 增加帧计数
+void updatefps()
+{
 	framecount++;
 
-	// 获取当前时间
 	time_t currentTime;
 	time(&currentTime);
 
-	// 计算时间差
 	double deltaTime = difftime(currentTime, lasttime);
 
-	// 如果时间差大于等于1秒，则计算FPS
 	if (deltaTime >= 1) {
 		double fps = framecount / deltaTime;
 
 		os_printf(">>>>>>>> FPS: %.2f\n", fps);
 
-		// 重置帧计数和时间戳
 		framecount = 0;
 		time(&lasttime);
 	}
@@ -112,16 +108,20 @@ uint8 g_q[Q_SIZE];
 queue_t q_entity;
 void * camera_phread(void * arg)
 {
+	int ret;
 	pthread_mutex_init(&g_mtx, NULL);
 	os_printf("start camera.....\n");
 	queue_init(&q_entity, g_q, Q_SIZE);
 	v4l2_init();
 	img_str * img;
-	int ret;
 	while (1) {
 		img  = capture();
 		pthread_mutex_lock(&g_mtx);
 		ret = queue_in(&q_entity, (uint8 *)img, sizeof(img_str));
+		if (ret < 0) {
+			/*TODO:*/
+			os_printf("queue is overflow, maybe erase queue\n");
+		}
 		pthread_mutex_unlock(&g_mtx);
 		os_printf("queue in ret: %d, ptr: %p\n", ret, img->ptr);
 		usleep(25000);
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 			usleep(25000);
 			continue;
 		}
-		usleep(50000);
+		//usleep(25000);
 		preprocess(entity, get_picture);
 #else
 		preprocess(entity, image_name);
