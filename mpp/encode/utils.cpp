@@ -938,7 +938,7 @@ Ext2FrmFmt map_ext_to_frm_fmt[] = {
     {   "rgb888",               MPP_FMT_RGB888,                             },
     {   "rgba8888",             MPP_FMT_RGBA8888,                           },
 
-    {   "fbc",                  MPP_FMT_YUV420SP | MPP_FRAME_FBC_AFBC_V1,   },
+    {   "fbc",                  MPP_FMT_BUTT,   },
 };
 
 MPP_RET name_to_frame_format(const char *name, MppFrameFormat *fmt)

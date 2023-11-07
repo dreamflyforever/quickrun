@@ -227,7 +227,7 @@ typedef enum {
     MPP_FMT_BGRA8888        = (MPP_FRAME_FMT_RGB + 12), /* 32-bit RGB               */
     MPP_FMT_RGBA8888        = (MPP_FRAME_FMT_RGB + 13), /* 32-bit RGB               */
     MPP_FMT_RGB_BUTT,
-
+    MPP_FMT_FBC =  MPP_FMT_YUV420SP | MPP_FRAME_FBC_AFBC_V1,
     MPP_FMT_BUTT,
 } MppFrameFormat;
 
