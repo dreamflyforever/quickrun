@@ -610,7 +610,7 @@ int mpi_dec_test_decode(MpiDecTestCmd *cmd)
             goto MPP_TEST_OUT;
         }
         mpp_packet_init_with_buffer(&packet, pkt_buf);
-        buf = mpp_buffer_get_ptr(pkt_buf);
+        buf = (char *)mpp_buffer_get_ptr(pkt_buf);
 
         mpp_frame_set_buffer(frame, frm_buf);
     }
