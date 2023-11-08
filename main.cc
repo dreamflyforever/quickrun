@@ -115,7 +115,7 @@ void * camera_phread(void * arg)
 	v4l2_init();
 	img_str * img;
 	while (1) {
-		img  = capture();
+		img = capture();
 		pthread_mutex_lock(&g_mtx);
 		ret = queue_in(&q_entity, (uint8 *)img, sizeof(img_str));
 		if (ret < 0) {

@@ -105,7 +105,7 @@ void save_file(img_str * img)
 	sprintf(str, "%d.jpeg", t);
 	printf("str: %s\n", str);
 	//fp = fopen(str, "w+");
-	fp = fopen("test.nv12", "w+");
+	fp = fopen("test.jpeg", "w+");
 	if (!fp) {
 		perror("failed to open picture");
 		assert(0);
@@ -114,6 +114,25 @@ void save_file(img_str * img)
 	fwrite(img->ptr, 1, img->size, fp);
 	fclose(fp);
 	return ;
+}
+
+img_str * get_file()
+{
+	img_str * img = (img_str *)malloc(sizeof(img_str));
+	img->ptr = (char *)malloc(1024 * 1024 * 1024);
+	memset(img->ptr, 0, 1024 * 1024 * 1024);
+	img->size = 1024 * 1024 * 1024;
+	FILE * fp;
+	fp = fopen("test.nv12", "r");
+	if (!fp) {
+		perror("failed to open picture");
+		assert(0);
+	}
+	
+	img->size = fread(img->ptr, 1, img->size, fp);
+	os_printf("yuv img size : %d\n", img->size);
+	fclose(fp);
+	return img;
 }
 
 /*
@@ -139,23 +158,29 @@ int preprocess(session_str * entity, img_str * image)
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
 	long long start = get_timestamp();
-#if 0
+#if 1
 	cv::_InputArray pic_arr(image->ptr, image->size);
 	entity->orig_img = cv::imdecode(pic_arr, cv::IMREAD_UNCHANGED);
 #endif
 	save_file(image);
 
 	extern int mpp_jpg2yuv();
-
 	mpp_jpg2yuv();
-	entity->orig_img = cv::imread("test.nv12", 1);
 
-	cv::Mat img;
-	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
+	img_str * img_yuv = get_file();
+#if 0
+	cv::Mat img; /*yuv image*/
+	img.create(640, 352, CV_8UC3);
+	memcpy(img.data, img_yuv->ptr, img_yuv->size);
+#endif
+	cv::Mat img( 640 + 640 / 2, 352, CV_8UC1, (unsigned char *) img_yuv->ptr);
+	//memcpy(&(entity->orig_img), &img, sizeof(yuv));
+	//cv::Mat img;
+	//cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
 	long long end = get_timestamp();
 	os_printf("delay: %lld ms\n", (end - start));
 	if (!entity->orig_img.data) {
-		os_printf("cv::imread %f fail!\n", image);
+		os_printf("cv::imread %p fail!\n", image);
 		goto end;
 	}
 	img_width = img.cols;
@@ -171,7 +196,8 @@ int preprocess(session_str * entity, img_str * image)
 		entity->resize_buf = malloc(height * width * channel);
 		memset(entity->resize_buf, 0x00, height * width * channel);
 
-		src = wrapbuffer_virtualaddr((void *)img.data, img_width, img_height, RK_FORMAT_RGB_888);
+		//src = wrapbuffer_virtualaddr((void *)img.data, img_width, img_height, RK_FORMAT_RGB_888);
+		src = wrapbuffer_virtualaddr((void *)img.data, img_width, img_height, RK_FORMAT_YCrCb_422_P);
 		dst = wrapbuffer_virtualaddr((void *)entity->resize_buf, width, height, RK_FORMAT_RGB_888);
 		ret = imcheck(src, dst, src_rect, dst_rect);
 		if (IM_STATUS_NOERROR != ret) {
@@ -302,7 +328,7 @@ int session_init(session_str ** entity, const char * model_name)
 
 	(*entity)->input_attrs = (rknn_tensor_attr *)malloc(((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
 	memset((*entity)->input_attrs, 0, ((*entity)->io_num).n_input * sizeof(rknn_tensor_attr));
-	os_printf(">>>>>>>>>%lld\n", sizeof((*entity)->input_attrs));
+	os_printf(">>>>>>>>>%ld\n", sizeof((*entity)->input_attrs));
 	for (i = 0; i < ((*entity)->io_num).n_input; i++) {
 		((*entity)->input_attrs[i]).index = i;
 		ret = rknn_query((*entity)->ctx, RKNN_QUERY_INPUT_ATTR,
@@ -390,7 +416,7 @@ int inference(session_str * entity)
 
 int set_user_cb(session_str * entity, USER_CB cb)
 {
-	int retval;
+	int retval = 0;
 	entity->cb = cb;
 	return retval;
 }
