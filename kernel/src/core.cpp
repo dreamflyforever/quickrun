@@ -110,6 +110,7 @@ int preprocess(session_str * entity, img_str * image)
 	int width = entity->model_width;
 	int height = entity->model_height;
 	int channel = entity->model_channel;
+#if RGA
 	/*init rga context*/
 	rga_buffer_t src;
 	rga_buffer_t dst;
@@ -119,8 +120,9 @@ int preprocess(session_str * entity, img_str * image)
 	memset(&dst_rect, 0, sizeof(dst_rect));
 	memset(&src, 0, sizeof(src));
 	memset(&dst, 0, sizeof(dst));
+#endif
 	long long start = get_timestamp();
-
+#if RGA
 	cv::_InputArray pic_arr(image->ptr, image->size);
 	entity->orig_img = cv::imdecode(pic_arr, cv::IMREAD_UNCHANGED);
 	//cv::imshow("123", src_mat);
@@ -128,8 +130,10 @@ int preprocess(session_str * entity, img_str * image)
 	//entity->orig_img = cv::imread(image_ptr, 1);
 	cv::Mat img;
 	cv::cvtColor(entity->orig_img, img, cv::COLOR_BGR2RGB);
+#endif
 	long long end = get_timestamp();
 	os_printf("delay: %lld ms\n", (end - start));
+#if RGA
 	if (!entity->orig_img.data) {
 		os_printf("cv::imread %f fail!\n", image);
 		goto end;
@@ -141,7 +145,8 @@ int preprocess(session_str * entity, img_str * image)
 	entity->img_width = img_width;
 	/* You may not need resize when src resulotion equals to dst resulotion */
 	entity->resize_buf = nullptr;
-
+#endif
+#if RGA
 	if (img_width != width || img_height != height) {
 		os_printf("resize with RGA!\n");
 		entity->resize_buf = malloc(height * width * channel);
@@ -164,6 +169,12 @@ int preprocess(session_str * entity, img_str * image)
 	} else {
 		entity->inputs[0].buf = (void *)img.data;
 	}
+#else
+	/*XXX*/
+	entity->inputs[0].buf = (void *)image->ptr;
+	
+#endif
+
 	rknn_inputs_set(entity->ctx, (entity->io_num).n_input, entity->inputs);
 
 	entity->outputs = (rknn_output * )malloc(entity->io_num.n_output * sizeof(rknn_output));
@@ -217,9 +228,10 @@ int postprocess(session_str * entity)
 		int y1 = det_result->box.top;
 		int x2 = det_result->box.right;
 		int y2 = det_result->box.bottom;
+#if RGA
 		rectangle(entity->orig_img, cv::Point(x1, y1), cv::Point(x2, y2), cv::Scalar(255, 0, 0, 255), 3);
 		putText(entity->orig_img, text, cv::Point(x1, y1 + 12), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(0, 0, 0));
-
+#endif
 		if (entity->cb != NULL) {
 			entity->cb(det_result);
 		}
@@ -230,7 +242,9 @@ int postprocess(session_str * entity)
 		memset(str, 0, 20);
 		static int t = 0;
 		sprintf(str, "%d_out.jpeg", t);
+#if RGA
 		imwrite(str, entity->orig_img);
+#endif
 		free(str);
 		t++;
 	}
@@ -351,7 +365,7 @@ int inference(session_str * entity)
 	int retval = -1;
 	if (entity == NULL) {
 		os_printf("error\n");
-		assert(0);
+		while (1);
 	}
 	if (entity->ctx == NULL)
 		os_printf("======\n");

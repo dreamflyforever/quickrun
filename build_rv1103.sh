@@ -4,8 +4,8 @@ set -e
 rm -rf build/
 rm -rf install/
 
-TARGET_SOC="rk3588"
-GCC_COMPILER=aarch64-linux-gnu
+TARGET_SOC="rv1103"
+GCC_COMPILER=arm-rockchip830-linux-uclibcgnueabihf
 
 export LD_LIBRARY_PATH=${TOOL_CHAIN}/lib64:$LD_LIBRARY_PATH
 export CC=${GCC_COMPILER}-gcc

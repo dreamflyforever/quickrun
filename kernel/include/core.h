@@ -13,13 +13,19 @@
 
 #define _BASETSD_H
 
-#include "RgaUtils.h"
+#define RGA 0
+#if RGA
 #include "im2d.h"
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/imgproc.hpp"
-#include "postprocess.h"
+
+#include "RgaUtils.h"
 #include "rga.h"
+#endif
+
+#include "postprocess.h"
+
 #include "rknn_api.h"
 
 #define uint8 unsigned char 
@@ -42,7 +48,9 @@ typedef struct session_str {
 	int img_height;
 	int img_channel;
 	uint8 * model_data;
+#if RGA
 	cv::Mat orig_img;
+#endif
 	USER_CB cb;
 } session_str;
 

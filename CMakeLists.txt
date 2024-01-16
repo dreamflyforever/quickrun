@@ -31,9 +31,9 @@ set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/3rdparty/opencv/share/OpenCV)
 find_package(OpenCV REQUIRED)
 
 #rga
-set(RGA_PATH ${CMAKE_SOURCE_DIR}/3rdparty/rga)
-set(RGA_LIB ${RGA_PATH}/lib/librga.so)
-include_directories( ${RGA_PATH}/include)
+#set(RGA_PATH ${CMAKE_SOURCE_DIR}/3rdparty/rga)
+#set(RGA_LIB ${RGA_PATH}/lib/librga.so)
+#include_directories( ${RGA_PATH}/include)
 
 set(CMAKE_INSTALL_RPATH "lib")
 

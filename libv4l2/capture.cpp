@@ -291,7 +291,8 @@ int v4l2_init()
 	if(ret < 0) {
 		printf("%s %s %d\n", __FILE__, __func__, __LINE__);
 		perror("err");
-		assert(0);
+		//assert(0);
+		while (1);
 		goto err;
 	}
 	ret = v4l2_streamon(fd);
