@@ -9,13 +9,13 @@
 **compile**
 
 ```bash
-bash build_rk3588_yolov5.sh
+bash build_rv1103.sh
 ```
 
 **test**
 
 ```bash
-bash test_rk3588_yolov5.sh
+bash test_rv1103.sh
 ```
 
 ## `quickrun` deploy 
@@ -31,5 +31,4 @@ modify need by your project
 ```
 
 ### license
-copyright BY haoqixin.INC  
-author by haoqixin AI team
+MIT
