@@ -30,6 +30,5 @@ modify need by your project
 #define BOX_THRESH 0.5 
 ```
 
-### license
-copyright BY haoqixin.INC  
-author by haoqixin AI team
+### license  
+MIT by Jim
