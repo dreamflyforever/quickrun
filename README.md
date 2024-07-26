@@ -1,9 +1,24 @@
 > # quickrun
 
-## rknn model export
+Quickrun is a software for the efficient and high-concurrency deployment of multiple models on the rk3588 rknn.
 
-参考: https://is5gnzipbc.feishu.cn/wiki/X4eGwni4YiyuUUkIrEUcYkxunHe
+Software Framework:
 
+	● Adopts the session idea, allowing the definition of multiple sessions to meet the different task requirements of various models. For example, in the case of charging pile detection, garbage classification, and cliff detection, when multiple models share a camera and use the yolov5 model.
+
+	● Uses a message queue to store photo data to prevent frame loss and achieve efficient concurrency. In general, the photo data is collected at 25fps, and the total time for pre-processing, inference, and post-processing is 40ms (25fps), so the time for taking and storing messages is basically equal.
+
+	● Since the model has a 640*640 input and the camera has a 640 * 480 input, cv::imdecode is used for decoding, and the rgb format is input into the model, using rga for accelerated proportional scaling.
+
+	● Three models are set up with three independent threads for three sessions, which are independent of each other and do not interfere with each other.
+
+Model Output:
+
+	● For the rk3588 yolov5 model output, when converting to onnx, the cat operation in the forward layer should be removed, and the model directly outputs three feature maps of 20 * 20, 40 * 40, and 80 * 80. Modifications are made in the yolo.py and export.py files accordingly.
+
+Performance:
+
+	● One model occupies 1.2T of the NPU and 40% of the CPU (for pre-processing, inference, and post-processing for drawing frames), and the inference time is 20ms. The perf top -p command can be used to view the CPU usage rate and can be precise to the CPU usage rate of a specific function.
 ## quick start
 
 **compile**
