@@ -45,6 +45,7 @@ modify need by your project
 #define BOX_THRESH 0.5 
 ```
 
+[机器人视频观看](https://github.com/dreamflyforever/quickrun/blob/main/video/machine.mp4)
 <video controls>
   <source src="video/machine.mp4" type="video/mp4">
   Your browser does not support the video tag.
