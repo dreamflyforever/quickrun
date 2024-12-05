@@ -45,5 +45,10 @@ modify need by your project
 #define BOX_THRESH 0.5 
 ```
 
+<video controls>
+  <source src="video/machine.mp4" type="video/mp4">
+  Your browser does not support the video tag.
+</video>
+
 ### license  
 MIT by Jim
