@@ -1,55 +1,88 @@
-> # quickrun
+# **Quickrun**
 
-Quickrun is a software for the efficient and high-concurrency deployment of multiple models on the rk3588 rknn.
+Quickrun is a software designed for the efficient and high-concurrency deployment of multiple models on the RK3588 platform with RKNN.
 
-Software Framework:
+---
 
-	1. Adopts the session idea, allowing the definition of multiple sessions to meet the different task requirements of various models. For example, in the case of charging pile detection, garbage classification, and cliff detection, when multiple models share a camera and use the yolov5 model.
+## **Software Framework**
 
-	2. Uses a message queue to store photo data to prevent frame loss and achieve efficient concurrency. In general, the photo data is collected at 25fps, and the total time for pre-processing, inference, and post-processing is 40ms (25fps), so the time for taking and storing messages is basically equal.
+1. **Session-Based Design:**
+   - Implements a session concept, allowing the definition of multiple sessions for different task requirements.
+   - Example: Supports scenarios like charging pile detection, garbage classification, and cliff detection where multiple models share the same camera, e.g., using YOLOv5.
 
-	3. Since the model has a 640*640 input and the camera has a 640 * 480 input, cv::imdecode is used for decoding, and the rgb format is input into the model, using rga for accelerated proportional scaling.
+2. **Message Queue for Data Management:**
+   - Uses a message queue to store photo data, preventing frame loss and ensuring efficient concurrency.
+   - Photo data is collected at 25fps, with a total processing time (pre-processing, inference, post-processing) of 40ms per frame.
 
-	4. Three models are set up with three independent threads for three sessions, which are independent of each other and do not interfere with each other.
+3. **Input Processing:**
+   - Handles model input of `640x640` while the camera input is `640x480`.
+   - Decodes the input using `cv::imdecode`, converts it to RGB format, and leverages RGA for accelerated proportional scaling.
 
-Model Output:
+4. **Threaded Model Execution:**
+   - Three independent threads for three sessions to execute models concurrently without interference.
 
-	For the rk3588 yolov5 model output, when converting to onnx, the cat operation in the forward layer should be removed, and the model directly outputs three feature maps of 20 * 20, 40 * 40, and 80 * 80. Modifications are made in the yolo.py and export.py files accordingly.
+---
 
-Performance:
+## **Model Output Customization**
 
-	One model occupies 1.2T of the NPU and 40% of the CPU (for pre-processing, inference, and post-processing for drawing frames), and the inference time is 20ms. The perf top -p command can be used to view the CPU usage rate and can be precise to the CPU usage rate of a specific function.
-## quick start
+- For RK3588 YOLOv5 model:
+  - When converting to ONNX, remove the `cat` operation in the forward layer.
+  - Configure the model to output three feature maps: `20x20`, `40x40`, and `80x80`.
+  - Modify the necessary files: `yolo.py` and `export.py`.
 
-**compile**
+---
 
+## **Performance Overview**
+
+- **Resource Usage:**
+  - One model uses:
+    - **1.2T** of the NPU.
+    - **40%** of the CPU for pre-processing, inference, and post-processing (including frame drawing).
+
+- **Inference Time:**
+  - Achieves an inference time of **20ms**.
+
+- **CPU Monitoring:**
+  - Use the `perf top -p` command to view the CPU usage rate, down to specific functions.
+
+---
+
+## **Quick Start**
+
+### **Compilation**
+
+Run the following command to build the project:
 ```bash
 bash build_rk3588_yolov5.sh
 ```
+Testing
 
-**test**
-
-```bash
+Run the following command to test the deployment:
+```
 bash test_rk3588_yolov5.sh
 ```
+### Quickrun Deployment
 
-## `quickrun` deploy 
-
-modify need by your project
-
-```cpp
+Modify the following parameters in the code as per your project’s requirements:
+```
 #define OBJ_NAME_MAX_SIZE 16  
 #define OBJ_NUMB_MAX_SIZE 64  
 #define OBJ_CLASS_NUM 1      
 #define NMS_THRESH 0.25       
 #define BOX_THRESH 0.5 
 ```
+## Robot Demo Video
+
+View Robot Video on GitHub
 
 [机器人视频观看](https://github.com/dreamflyforever/quickrun/blob/main/video/machine.mp4)
-<video controls>
-  <source src="video/machine.mp4" type="video/mp4">
+You can also watch the video below:
+
+<source src="video/machine.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
 
-### license  
-MIT by Jim
+
+## License
+
+Quickrun is licensed under the MIT License by Jim.
