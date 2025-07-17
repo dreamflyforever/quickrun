@@ -15,7 +15,12 @@
 
 #define FORMAT V4L2_PIX_FMT_MJPEG
 //#define FORMAT V4L2_PIX_FMT_H264
+#define DEVICENAME "/dev/video4"
 #define SAVE_PICTURE 0
+
+#if SAVE_PICTURE
+char * str;
+#endif
 
 static int fd;
 static struct v4l2_buf * v4l2_buf;
@@ -178,7 +183,7 @@ int v4l2_init()
 	int i;
 	struct v4l2_capability cap;
 #if SAVE_PICTURE
-	char *str = (char *)malloc(20);
+	str = (char *)malloc(20);
 	memset(str, 0, 20);
 	int t;
 #endif
@@ -186,7 +191,7 @@ int v4l2_init()
 	char DEFAULT_DEV[13] = {0};
 	memset(&cap, 0, sizeof(cap));
 	int argc = 3;
-	char argv[][13] = {"", "/dev/video4", "80"};
+	char argv[][13] = {"", DEVICENAME, "80"};
 	if (argc != 3) {
 		/*check pid-vid search the device*/
 		#if 1

@@ -265,7 +265,7 @@ int v4l2_mmap(int fd, struct v4l2_buf* v4l2_buf)
         buf_unit->start = mmap(0, buf_unit->length, PROT_READ | PROT_WRITE, MAP_SHARED,
                                 fd, buf_unit->offset);
 
-        if(buf_unit->start < 0)
+        if(buf_unit->start == NULL)
         {
             printf("ERR(%s):v4l2_mmap failed\n", __func__);
             goto err;
